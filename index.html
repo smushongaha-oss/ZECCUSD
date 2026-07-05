@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZECUSD H4 Live Trading Dashboard</title>
+    <title>BTCUSD H4 Live Trading Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -114,11 +114,11 @@
     </div>
 
     <div class="header">
-        <h1>ZECUSD H4 Live Trading Dashboard</h1>
+        <h1>BTCUSD H4 Live Trading Dashboard</h1>
         <div class="header-meta">
             <div>Bybit Linear Perpetual</div>
             <div>4H Timeframe</div>
-            <span class="source-badge">ZECUSDT</span>
+            <span class="source-badge">BTCUSDT</span>
             <div id="connection-status" class="connection-status">
                 <span class="status-dot status-connecting"></span>
                 <span id="status-text">Connecting to Bybit...</span>
@@ -165,7 +165,7 @@
                     <span id="signal-badge" class="signal-badge badge-neutral">--</span>
                 </div>
                 <div style="font-size:13px;color:#cbd5e1;line-height:1.5;">
-                    <div id="signal-reason">Fetching ZECUSDT H4 data from Bybit...</div>
+                    <div id="signal-reason">Fetching BTCUSDT H4 data from Bybit...</div>
                 </div>
             </div>
             <div class="signal-strength">
@@ -196,7 +196,7 @@
                 <div class="entry-tp-box tp-level-1" style="grid-column:1;">
                     <div class="entry-tp-label">Risk per Trade</div>
                     <div class="entry-tp-value" id="risk-amount">--</div>
-                    <div class="entry-tp-risk" id="risk-note">0.01 lot @ $--</div>
+                    <div class="entry-tp-risk" id="risk-note">0.001 BTC @ $--</div>
                 </div>
                 <div class="entry-tp-box tp-level-3" style="grid-column:2;">
                     <div class="entry-tp-label">TP 3 (1:3)</div>
@@ -230,15 +230,15 @@
     </div>
 
     <div class="footer">
-        Live data · Bybit Linear Perpetual · ZECUSDT · H4 Timeframe · Auto-refreshes every 5 minutes · Open locally for live data
+        Live data · Bybit Linear Perpetual · BTCUSDT · H4 Timeframe · Auto-refreshes every 5 minutes · Open locally for live data
     </div>
 </div>
 
 <script>
-const SYMBOL   = 'ZECUSDT';
+const SYMBOL   = 'BTCUSDT';
 const INTERVAL = '240';
 const LIMIT    = 100;
-const LOT_SIZE = 0.01;
+const LOT_SIZE = 0.001;   // BTC qty per trade — tune to your account size (0.001 BTC ≈ small-account sizing)
 const ATR_MULTIPLIER = 1.5;
 const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes in ms
 
@@ -496,9 +496,7 @@ function findRecentSwings() {
 }
 
 function fmt(n) {
-    if (n >= 1000) return '$' + n.toFixed(2);
-    if (n >= 10)   return '$' + n.toFixed(3);
-    return '$' + n.toFixed(4);
+    return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function update() {
@@ -516,11 +514,11 @@ function update() {
 function calculateEntryAndTP(e12, e26, rsi, atr) {
     const price = candles.at(-1).close;
     const swings = findRecentSwings();
-    
+
     let entry, sl, signal_dir;
     const bulls = [e12>e26, rsi>50, price>e12, price>e26].filter(Boolean).length;
     const bears = 4 - bulls;
-    
+
     if (bulls >= bears) {
         signal_dir = 'BUY';
         entry = Math.min(e12, price);
@@ -530,33 +528,34 @@ function calculateEntryAndTP(e12, e26, rsi, atr) {
         entry = Math.max(e12, price);
         sl = swings.recent_high + atr * 0.5;
     }
-    
+
     const risk = Math.abs(entry - sl);
     const tp1 = signal_dir === 'BUY' ? entry + risk : entry - risk;
     const tp2 = signal_dir === 'BUY' ? entry + risk * 2 : entry - risk * 2;
     const tp3 = signal_dir === 'BUY' ? entry + risk * 3 : entry - risk * 3;
-    
-    const risk_usd = risk * LOT_SIZE * 1000;
-    const per_pip = LOT_SIZE * 10;
-    
+
+    // For a linear USDT perpetual, 1 contract = 1 BTC, so USD risk = price_diff * qty(BTC)
+    const risk_usd = risk * LOT_SIZE;
+    const per_dollar_move = LOT_SIZE;
+
     document.getElementById('entry-price').textContent = fmt(entry);
     document.getElementById('entry-note').textContent = `${(Math.abs(entry - price) / price * 100).toFixed(2)}% from current`;
-    
+
     document.getElementById('tp1-price').textContent = fmt(tp1);
     document.getElementById('tp1-info').textContent = `Risk: $${(risk_usd).toFixed(2)}`;
-    
+
     document.getElementById('tp2-price').textContent = fmt(tp2);
     document.getElementById('tp2-info').textContent = `Risk: $${(risk_usd * 2).toFixed(2)}`;
-    
+
     document.getElementById('tp3-price').textContent = fmt(tp3);
     document.getElementById('tp3-info').textContent = `Risk: $${(risk_usd * 3).toFixed(2)}`;
-    
+
     document.getElementById('sl-price').textContent = fmt(sl);
     document.getElementById('sl-info').textContent = `Risk: $${risk_usd.toFixed(2)}`;
-    
+
     document.getElementById('risk-amount').textContent = '$' + risk_usd.toFixed(2);
-    document.getElementById('risk-note').textContent = `${LOT_SIZE} lot @ ${per_pip.toFixed(2)} per pip`;
-    
+    document.getElementById('risk-note').textContent = `${LOT_SIZE} BTC @ $${per_dollar_move.toFixed(4)} per $1 move`;
+
     const container = document.getElementById('entry-tp-container');
     const entryEl = container.querySelector('.entry-buy, .entry-sell');
     if (signal_dir === 'SELL') {
@@ -572,7 +571,7 @@ function updateMetrics(e12, e26, rsi, atr, macd) {
 
     document.getElementById('current-price').textContent = fmt(price);
     const chEl = document.getElementById('price-change');
-    chEl.textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(3)} (${pct.toFixed(2)}%)`;
+    chEl.textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(2)} (${pct.toFixed(2)}%)`;
     chEl.className = chg >= 0 ? 'positive' : 'negative';
 
     const high = Math.max(...candles.map(c => c.high));
@@ -585,7 +584,7 @@ function updateMetrics(e12, e26, rsi, atr, macd) {
     document.getElementById('candle-low').textContent    = fmt(cur.low);
     const v = cur.volume;
     document.getElementById('candle-volume').textContent =
-        v >= 1e6 ? (v/1e6).toFixed(2)+'M' : v >= 1e3 ? (v/1e3).toFixed(1)+'K' : v.toFixed(0);
+        v >= 1e6 ? (v/1e6).toFixed(2)+'M' : v >= 1e3 ? (v/1e3).toFixed(1)+'K' : v.toFixed(2);
 
     set('ema12', fmt(e12));
     set('ema26', fmt(e26));
@@ -598,8 +597,8 @@ function updateMetrics(e12, e26, rsi, atr, macd) {
     else setC('rsi-status', rsi > 50 ? 'Bullish' : 'Bearish', rsi > 50);
 
     set('atr', fmt(atr));
-    set('macd', macd.macd.toFixed(4));
-    set('macd-signal', macd.signal.toFixed(4));
+    set('macd', macd.macd.toFixed(2));
+    set('macd-signal', macd.signal.toFixed(2));
     setC('macd-status', macd.macd > macd.signal ? 'Bullish' : 'Bearish', macd.macd > macd.signal);
     set('signal-cross-status', macd.histogram > 0 ? 'Histogram +' : 'Histogram −');
 }
