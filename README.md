@@ -1,1 +1,1 @@
-# ZEC\USD
+# BTC\USD
