@@ -1,671 +1,1210 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BTCUSD H4 Live Trading Dashboard</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: #e2e8f0;
-            padding: 20px;
-            min-height: 100vh;
-        }
-        .container { max-width: 1400px; margin: 0 auto; }
-        .header { margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #334155; }
-        .header h1 { font-size: 28px; margin-bottom: 8px; color: #f1f5f9; }
-        .header-meta { display: flex; gap: 24px; font-size: 14px; color: #94a3b8; align-items: center; flex-wrap: wrap; }
-        .connection-status { display: inline-flex; align-items: center; gap: 8px; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; }
-        .status-connected { background: #10b981; animation: pulse 2s infinite; }
-        .status-disconnected { background: #ef4444; }
-        .status-connecting { background: #f59e0b; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
-        .retry-btn { padding: 6px 12px; background: #334155; border: 1px solid #64748b; color: #e2e8f0; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: 600; }
-        .retry-btn:hover { background: #475569; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BTCUSD Solid Trend Sniper + Groq AI</title>
+<style>
+    * { box-sizing: border-box; }
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #12161f;
+        color: #ffffff;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+    }
+    .container {
+        width: 100%;
+        max-width: 640px;
+        background-color: #1a222d;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        border: 1px solid #2a3444;
+    }
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid #2a3444;
+        padding-bottom: 15px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .header h2 { margin: 0; font-size: 1.25em; }
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85em;
+        font-weight: bold;
+        background-color: #ff9800;
+        color: #000;
+    }
+    .status-badge.connected { background-color: #4caf50; color: #fff; }
+    .status-badge.disconnected { background-color: #f44336; color: #fff; }
 
-        /* Auto-refresh bar */
-        .refresh-bar-wrap {
-            display: flex; align-items: center; gap: 10px;
-            background: #0f172a; border: 1px solid #334155;
-            border-radius: 4px; padding: 4px 10px; font-size: 11px; color: #64748b;
-        }
-        .refresh-bar-track { width: 80px; height: 4px; background: #1e293b; border-radius: 2px; overflow: hidden; }
-        .refresh-bar-fill {
-            height: 100%; width: 100%;
-            background: linear-gradient(90deg, #10b981, #06b6d4);
-            border-radius: 2px;
-            transition: width 1s linear;
-        }
-        .refresh-countdown { min-width: 36px; text-align: right; color: #94a3b8; font-weight: 600; }
+    .controls-row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+    .controls-row label {
+        font-size: 0.8em;
+        color: #90a4ae;
+        display: block;
+        margin-bottom: 4px;
+    }
+    select, input[type=number], input[type=password], input[type=text] {
+        background-color: #232d3b;
+        color: #fff;
+        border: 1px solid #2a3444;
+        border-radius: 6px;
+        padding: 8px;
+        font-size: 0.95em;
+        width: 100%;
+    }
+    .symbol-picker { flex: 2; min-width: 160px; }
+    .strategy-picker { flex: 2; min-width: 160px; }
 
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
-        .grid-full { grid-column: 1 / -1; }
-        .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        .price-display { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .metric { text-align: center; }
-        .metric-label { font-size: 12px; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px; }
-        .metric-value { font-size: 28px; font-weight: 600; color: #f1f5f9; }
-        .metric-change { font-size: 12px; margin-top: 4px; }
-        .positive { color: #10b981; }
-        .negative { color: #ef4444; }
-        .signal-box { border: 2px solid #334155; border-radius: 6px; padding: 16px; margin-bottom: 16px; }
-        .signal-buy { border-color: #10b981; background: rgba(16,185,129,0.05); }
-        .signal-sell { border-color: #ef4444; background: rgba(239,68,68,0.05); }
-        .signal-neutral { border-color: #64748b; background: rgba(100,116,139,0.05); }
-        .signal-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-        .signal-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; }
-        .badge-buy { background: #10b981; color: white; }
-        .badge-sell { background: #ef4444; color: white; }
-        .badge-neutral { background: #64748b; color: white; }
-        .indicators-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-        .indicator { background: #0f172a; border-radius: 4px; padding: 12px; text-align: center; }
-        .indicator-name { font-size: 11px; color: #64748b; margin-bottom: 4px; text-transform: uppercase; }
-        .indicator-value { font-size: 18px; font-weight: 600; color: #f1f5f9; }
-        .indicator-status { font-size: 10px; margin-top: 4px; }
-        .chart-container { position: relative; height: 400px; margin-bottom: 20px; }
-        .signal-strength { margin-top: 16px; }
-        .strength-label { font-size: 12px; color: #94a3b8; margin-bottom: 8px; }
-        .strength-bar { width: 100%; height: 8px; background: #0f172a; border-radius: 4px; overflow: hidden; }
-        .strength-fill { height: 100%; background: linear-gradient(90deg,#10b981,#06b6d4); border-radius: 4px; transition: width 0.3s ease; }
-        .strength-text { font-size: 11px; color: #94a3b8; margin-top: 4px; }
-        .candle-info { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
-        .candle-stat { background: #0f172a; padding: 8px; border-radius: 4px; text-align: center; }
-        .candle-stat-label { color: #64748b; font-size: 10px; margin-bottom: 2px; }
-        .candle-stat-value { color: #f1f5f9; font-weight: 600; font-size: 14px; }
-        .entry-tp-section { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-        .entry-tp-box { background: #0f172a; border-radius: 6px; padding: 12px; border-left: 4px solid #334155; }
-        .entry-tp-label { font-size: 11px; color: #94a3b8; text-transform: uppercase; margin-bottom: 6px; font-weight: 600; }
-        .entry-tp-value { font-size: 18px; font-weight: 600; color: #f1f5f9; margin-bottom: 4px; }
-        .entry-tp-risk { font-size: 10px; color: #64748b; }
-        .tp-level-1 { border-left-color: #10b981; }
-        .tp-level-2 { border-left-color: #06b6d4; }
-        .tp-level-3 { border-left-color: #f59e0b; }
-        .entry-buy { border-left-color: #10b981; }
-        .entry-sell { border-left-color: #ef4444; }
-        .sandbox-warning {
-            background: #1c1917;
-            border: 1px solid #92400e;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-            display: none;
-        }
-        .sandbox-warning h3 { color: #fbbf24; margin-bottom: 10px; font-size: 15px; }
-        .sandbox-warning p { color: #d6d3d1; font-size: 13px; line-height: 1.6; margin-bottom: 8px; }
-        .sandbox-warning code { background: #292524; padding: 2px 6px; border-radius: 3px; font-family: monospace; font-size: 12px; color: #a3e635; }
-        .source-badge { font-size: 11px; background: #0f172a; border: 1px solid #475569; color: #64748b; padding: 2px 8px; border-radius: 3px; }
-        .footer { text-align: center; font-size: 12px; color: #64748b; margin-top: 24px; }
-        @media (max-width:1024px) { .grid{grid-template-columns:1fr} .indicators-grid{grid-template-columns:1fr 1fr} .entry-tp-section{grid-template-columns:1fr 1fr} }
-        @media (max-width:768px) { .price-display{grid-template-columns:1fr} .indicators-grid{grid-template-columns:1fr} .entry-tp-section{grid-template-columns:1fr} .header-meta{flex-direction:column;gap:8px} }
-    </style>
+    [data-strategy-fields] { display: none; }
+    [data-strategy-fields].active { display: block; }
+
+    details.settings {
+        background-color: #202836;
+        border-radius: 8px;
+        margin-bottom: 16px;
+        border: 1px solid #2a3444;
+    }
+    details.settings summary {
+        padding: 12px 16px;
+        cursor: pointer;
+        font-weight: bold;
+        color: #90caf9;
+        list-style: none;
+    }
+    details.settings summary::-webkit-details-marker { display: none; }
+    .settings-body {
+        padding: 0 16px 16px 16px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+    .settings-body .full { grid-column: 1 / -1; }
+    .toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background-color: #232d3b;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 0.9em;
+    }
+    .toggle-row input { width: auto; }
+    button.apply-btn {
+        grid-column: 1 / -1;
+        background-color: #1565c0;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 10px;
+        font-weight: bold;
+        cursor: pointer;
+        font-size: 0.95em;
+    }
+    button.apply-btn:hover { background-color: #1976d2; }
+    button.clear-btn {
+        background: none;
+        border: 1px solid #455a64;
+        color: #90a4ae;
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 0.75em;
+        cursor: pointer;
+    }
+    button.clear-btn:hover { border-color: #f44336; color: #f44336; }
+
+    .chart-box {
+        width: 100%;
+        height: 260px;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #2a3444;
+        margin-bottom: 16px;
+        background-color: #131722;
+        position: relative;
+    }
+    .chart-box canvas { display: block; width: 100%; height: 100%; }
+    .chart-range-label {
+        position: absolute;
+        right: 8px;
+        font-size: 0.72em;
+        color: #607d8b;
+        background-color: rgba(19, 23, 34, 0.7);
+        padding: 2px 6px;
+        border-radius: 4px;
+        pointer-events: none;
+    }
+    .chart-range-max { top: 8px; }
+    .chart-range-min { bottom: 8px; }
+    .chart-empty-msg {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 20px;
+        font-size: 0.85em;
+        color: #607d8b;
+    }
+
+    .price-card {
+        background-color: #232d3b;
+        padding: 18px;
+        border-radius: 8px;
+        text-align: center;
+        margin-bottom: 16px;
+    }
+    .price-value {
+        font-size: 2.1em;
+        font-weight: bold;
+        color: #00bcd4;
+        margin: 8px 0;
+    }
+
+    .signal-box {
+        padding: 18px;
+        border-radius: 8px;
+        text-align: center;
+        font-size: 1.15em;
+        font-weight: bold;
+        margin-top: 12px;
+        transition: all 0.3s ease;
+    }
+    .signal-neutral { background-color: #2e3846; color: #b0bec5; }
+    .signal-buy { background-color: #1b5e20; color: #81c784; border: 2px solid #4caf50; }
+    .signal-sell { background-color: #b71c1c; color: #ef9a9a; border: 2px solid #f44336; }
+
+    .details-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 12px;
+    }
+    .detail-item {
+        background-color: #232d3b;
+        padding: 12px;
+        border-radius: 6px;
+        text-align: center;
+    }
+    .detail-label { font-size: 0.85em; color: #90a4ae; margin-bottom: 4px; }
+    .detail-value { font-weight: bold; font-size: 1.1em; }
+
+    .trend-info {
+        font-size: 0.8em;
+        color: #90a4ae;
+        text-align: center;
+        margin-top: 8px;
+    }
+
+    .ai-box {
+        background: linear-gradient(135deg, #1a237e, #0d47a1);
+        border: 1px solid #3949ab;
+        border-radius: 10px;
+        padding: 14px;
+        margin: 14px 0;
+        font-size: 0.9em;
+        line-height: 1.45;
+    }
+    .ai-box .ai-title {
+        font-weight: bold;
+        color: #90caf9;
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .ai-box #aiText { color: #e3f2fd; }
+    .ai-source {
+        font-size: 0.75em;
+        color: #90caf9;
+        margin-top: 8px;
+        opacity: 0.8;
+    }
+
+    .tf-box {
+        background: #202836;
+        border: 1px solid #2a3444;
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-bottom: 14px;
+        font-size: 0.82em;
+        color: #b0bec5;
+        line-height: 1.5;
+    }
+    .tf-box strong { color: #80cbc4; }
+
+    .history-section { margin-top: 20px; }
+    .history-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    .history-header h3 { margin: 0; font-size: 1em; color: #90caf9; }
+    table.history-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.82em;
+    }
+    table.history-table th, table.history-table td {
+        padding: 6px 8px;
+        text-align: center;
+        border-bottom: 1px solid #2a3444;
+    }
+    table.history-table th { color: #90a4ae; font-weight: normal; }
+    .dir-buy { color: #81c784; font-weight: bold; }
+    .dir-sell { color: #ef9a9a; font-weight: bold; }
+    .dir-over { color: #ffca28; font-weight: bold; }
+    .empty-history { color: #607d8b; text-align: center; padding: 12px; font-size: 0.85em; }
+
+    #logConsole {
+        margin-top: 14px;
+        font-size: 0.8em;
+        color: #ff8a80;
+        text-align: center;
+        min-height: 1em;
+        white-space: pre-wrap;
+    }
+    .disclaimer {
+        margin-top: 16px;
+        font-size: 0.72em;
+        color: #607d8b;
+        text-align: center;
+        line-height: 1.4;
+    }
+    .legend {
+        display: flex;
+        justify-content: center;
+        gap: 14px;
+        font-size: 0.72em;
+        color: #90a4ae;
+        margin-bottom: 8px;
+        flex-wrap: wrap;
+    }
+    .legend span { display: flex; align-items: center; gap: 4px; }
+    .legend i {
+        width: 12px; height: 3px; display: inline-block; border-radius: 2px;
+    }
+</style>
 </head>
 <body>
+
 <div class="container">
-
-    <div class="sandbox-warning" id="sandbox-warning">
-        <h3>⚠️ Browser Sandbox Detected</h3>
-        <p>This dashboard is being previewed inside a restricted iframe (Claude artifact viewer), which blocks all external API calls. This is a preview environment limitation — not a code bug.</p>
-        <p><strong>To run with live data:</strong> Download the HTML file and open it directly in your browser (<code>File → Open</code> or drag the file into Chrome/Firefox). All Bybit API calls will work correctly when opened locally.</p>
-        <p>Alternatively, serve it locally: <code>python3 -m http.server 8080</code> then visit <code>http://localhost:8080</code></p>
-    </div>
-
     <div class="header">
-        <h1>BTCUSD H4 Live Trading Dashboard</h1>
-        <div class="header-meta">
-            <div>Bybit Linear Perpetual</div>
-            <div>4H Timeframe</div>
-            <span class="source-badge">BTCUSDT</span>
-            <div id="connection-status" class="connection-status">
-                <span class="status-dot status-connecting"></span>
-                <span id="status-text">Connecting to Bybit...</span>
-            </div>
-            <button id="retry-btn" class="retry-btn" style="display:none;" onclick="retryLoad()">Retry</button>
-            <div id="last-update">Last Update: --:-- UTC</div>
-            <!-- Auto-refresh countdown bar -->
-            <div class="refresh-bar-wrap">
-                <span>Refresh in</span>
-                <div class="refresh-bar-track">
-                    <div class="refresh-bar-fill" id="refresh-bar"></div>
-                </div>
-                <span class="refresh-countdown" id="refresh-countdown">5:00</span>
-            </div>
+        <h2 id="dashTitle">BTCUSD Solid Trend Sniper</h2>
+        <span id="connectionStatus" class="status-badge disconnected">Connecting...</span>
+    </div>
+
+    <div class="controls-row">
+        <div class="symbol-picker">
+            <label for="symbolSelect">Symbol</label>
+            <select id="symbolSelect">
+                <option value="cryBTCUSD" selected>BTCUSD</option>
+                <option value="cryETHUSD">ETHUSD</option>
+                <option value="cryLTCUSD">LTCUSD</option>
+                <option value="cryBCHUSD">BCHUSD</option>
+                <option value="cryXRPUSD">XRPUSD</option>
+            </select>
+        </div>
+        <div class="strategy-picker">
+            <label for="strategySelect">Strategy</label>
+            <select id="strategySelect">
+                <option value="sma">Solid Trend (EMA)</option>
+                <option value="lastdigit">Last Digit</option>
+            </select>
         </div>
     </div>
 
-    <div class="grid">
-        <div class="card">
-            <div class="price-display">
-                <div class="metric">
-                    <div class="metric-label">Current Price</div>
-                    <div class="metric-value" id="current-price">$--</div>
-                    <div class="metric-change"><span id="price-change">--</span></div>
-                </div>
-                <div class="metric">
-                    <div class="metric-label">24h Range</div>
-                    <div class="metric-value" id="price-range" style="font-size:16px;padding-top:6px;">-- – --</div>
-                    <div class="metric-change" style="color:#94a3b8;">Range: <span id="range-size">--</span></div>
-                </div>
-            </div>
-            <div class="candle-info">
-                <div class="candle-stat"><div class="candle-stat-label">H4 Open</div><div class="candle-stat-value" id="candle-open">--</div></div>
-                <div class="candle-stat"><div class="candle-stat-label">H4 High</div><div class="candle-stat-value" id="candle-high">--</div></div>
-                <div class="candle-stat"><div class="candle-stat-label">H4 Low</div><div class="candle-stat-value" id="candle-low">--</div></div>
-                <div class="candle-stat"><div class="candle-stat-label">H4 Vol</div><div class="candle-stat-value" id="candle-volume">--</div></div>
-            </div>
-        </div>
+    <div class="tf-box" id="tfBox">
+        <strong>Best Timeframes for BTCUSD</strong><br>
+        • Primary: <strong>M5</strong> and <strong>M15</strong><br>
+        • Secondary: <strong>M30</strong> / H1<br>
+        • Avoid pure tick charts for entries<br>
+        Use same EMAs (14 / 30 / 80) on MT5 or TradingView.
+    </div>
 
-        <div class="card">
-            <div id="signal-box" class="signal-box signal-neutral">
-                <div class="signal-title">
-                    <span id="signal-text">LOADING</span>
-                    <span id="signal-badge" class="signal-badge badge-neutral">--</span>
-                </div>
-                <div style="font-size:13px;color:#cbd5e1;line-height:1.5;">
-                    <div id="signal-reason">Fetching BTCUSDT H4 data from Bybit...</div>
-                </div>
+    <details class="settings" id="settingsPanel">
+        <summary>Settings &amp; Alerts</summary>
+        <div class="settings-body">
+            <div data-strategy-fields="sma" class="active">
+                <label for="fastPeriod">Fast EMA</label>
+                <input type="number" id="fastPeriod" min="5" max="40" value="14">
             </div>
-            <div class="signal-strength">
-                <div class="strength-label">Signal Strength</div>
-                <div class="strength-bar"><div id="strength-fill" class="strength-fill" style="width:0%;"></div></div>
-                <div class="strength-text" id="strength-text">0%</div>
+            <div data-strategy-fields="sma" class="active">
+                <label for="slowPeriod">Mid EMA</label>
+                <input type="number" id="slowPeriod" min="15" max="80" value="30">
             </div>
-        </div>
+            <div data-strategy-fields="sma" class="active">
+                <label for="trendPeriod">Slow EMA (long trend)</label>
+                <input type="number" id="trendPeriod" min="40" max="200" value="80">
+            </div>
+            <div data-strategy-fields="sma" class="active">
+                <label for="tpOffset">TP offset (points)</label>
+                <input type="number" id="tpOffset" min="20" step="10" value="150">
+            </div>
+            <div data-strategy-fields="sma" class="active">
+                <label for="confirmTicks">Confirm ticks</label>
+                <input type="number" id="confirmTicks" min="2" max="12" value="5">
+            </div>
+            <div data-strategy-fields="sma" class="active">
+                <label for="minSeparation">Min EMA gap %</label>
+                <input type="number" id="minSeparation" min="0" step="0.005" value="0.04">
+            </div>
 
-        <div class="card grid-full">
-            <h3 style="font-size:14px;margin-bottom:16px;color:#f1f5f9;">Entry Points & Take Profit Targets</h3>
-            <div class="entry-tp-section" id="entry-tp-container">
-                <div class="entry-tp-box entry-buy">
-                    <div class="entry-tp-label">Entry</div>
-                    <div class="entry-tp-value" id="entry-price">--</div>
-                    <div class="entry-tp-risk" id="entry-note">Calculating...</div>
-                </div>
-                <div class="entry-tp-box tp-level-1">
-                    <div class="entry-tp-label">TP 1 (1:1)</div>
-                    <div class="entry-tp-value" id="tp1-price">--</div>
-                    <div class="entry-tp-risk" id="tp1-info">Risk/Reward: --</div>
-                </div>
-                <div class="entry-tp-box tp-level-2">
-                    <div class="entry-tp-label">TP 2 (1:2)</div>
-                    <div class="entry-tp-value" id="tp2-price">--</div>
-                    <div class="entry-tp-risk" id="tp2-info">Risk/Reward: --</div>
-                </div>
-                <div class="entry-tp-box tp-level-1" style="grid-column:1;">
-                    <div class="entry-tp-label">Risk per Trade</div>
-                    <div class="entry-tp-value" id="risk-amount">--</div>
-                    <div class="entry-tp-risk" id="risk-note">0.001 BTC @ $--</div>
-                </div>
-                <div class="entry-tp-box tp-level-3" style="grid-column:2;">
-                    <div class="entry-tp-label">TP 3 (1:3)</div>
-                    <div class="entry-tp-value" id="tp3-price">--</div>
-                    <div class="entry-tp-risk" id="tp3-info">Risk/Reward: --</div>
-                </div>
-                <div class="entry-tp-box" style="border-left-color:#64748b;grid-column:3;">
-                    <div class="entry-tp-label">Stop Loss</div>
-                    <div class="entry-tp-value" id="sl-price">--</div>
-                    <div class="entry-tp-risk" id="sl-info">Max Loss: --</div>
-                </div>
+            <div data-strategy-fields="lastdigit">
+                <label for="windowSize">Rolling window</label>
+                <input type="number" id="windowSize" min="10" max="1000" value="100">
             </div>
-        </div>
-
-        <div class="card grid-full">
-            <h3 style="font-size:16px;margin-bottom:12px;">Technical Indicators (H4)</h3>
-            <div class="indicators-grid">
-                <div class="indicator"><div class="indicator-name">EMA 12</div><div class="indicator-value" id="ema12">--</div><div class="indicator-status" id="ema12-status">--</div></div>
-                <div class="indicator"><div class="indicator-name">EMA 26</div><div class="indicator-value" id="ema26">--</div><div class="indicator-status" id="ema26-status">--</div></div>
-                <div class="indicator"><div class="indicator-name">RSI (14)</div><div class="indicator-value" id="rsi">--</div><div class="indicator-status" id="rsi-status">--</div></div>
-                <div class="indicator"><div class="indicator-name">MACD</div><div class="indicator-value" id="macd">--</div><div class="indicator-status" id="macd-status">--</div></div>
-                <div class="indicator"><div class="indicator-name">ATR (14)</div><div class="indicator-value" id="atr">--</div><div class="indicator-status">Volatility</div></div>
-                <div class="indicator"><div class="indicator-name">MACD Signal</div><div class="indicator-value" id="macd-signal">--</div><div class="indicator-status" id="signal-cross-status">--</div></div>
+            <div data-strategy-fields="lastdigit">
+                <label for="digitThreshold">Threshold %</label>
+                <input type="number" id="digitThreshold" min="0" max="100" step="0.1" value="10.0">
             </div>
-        </div>
 
-        <div class="card grid-full">
-            <h3 style="font-size:16px;margin-bottom:16px;">H4 Price Action & Moving Averages</h3>
-            <div class="chart-container"><canvas id="priceChart"></canvas></div>
+            <div class="full">
+                <label for="groqKey">Groq API Key (free)</label>
+                <input type="password" id="groqKey" placeholder="Paste your free Groq key here">
+            </div>
+
+            <div class="full toggle-row">
+                <span>🔊 Sound on signal</span>
+                <input type="checkbox" id="soundToggle" checked>
+            </div>
+            <div class="full toggle-row">
+                <span>🔔 Browser notification on signal</span>
+                <input type="checkbox" id="notifyToggle" checked>
+            </div>
+            <button class="apply-btn" id="applyBtn">Apply &amp; restart feed</button>
+        </div>
+    </details>
+
+    <div class="legend" id="emaLegend">
+        <span><i style="background:#00e5ff"></i> Fast EMA</span>
+        <span><i style="background:#ff9800"></i> Mid EMA</span>
+        <span><i style="background:#ce93d8"></i> Slow EMA</span>
+    </div>
+
+    <div class="chart-box">
+        <canvas id="priceChart"></canvas>
+        <div class="chart-range-label chart-range-max" id="chartMaxLabel"></div>
+        <div class="chart-range-label chart-range-min" id="chartMinLabel"></div>
+        <div class="chart-empty-msg" id="chartEmptyMsg">Waiting for tick history...</div>
+    </div>
+
+    <div class="price-card">
+        <div class="detail-label" id="priceLabel">REAL-TIME TICK PRICE</div>
+        <div id="livePrice" class="price-value">0.00</div>
+        <div id="lastUpdate" style="font-size: 0.8em; color: #78909c;">Connecting...</div>
+        <div class="trend-info" id="trendInfo">Trend: —</div>
+    </div>
+
+    <div class="ai-box">
+        <div class="ai-title">🤖 AI Insight</div>
+        <div id="aiText">Waiting for market data...</div>
+        <div class="ai-source" id="aiSource"></div>
+    </div>
+
+    <div id="signalContainer" class="signal-box signal-neutral">
+        Connecting to feed...
+    </div>
+
+    <div class="details-grid" id="smaDetailsGrid">
+        <div class="detail-item">
+            <div class="detail-label">Entry Price</div>
+            <div id="entryPrice" class="detail-value">--</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Take Profit</div>
+            <div id="takeProfitPrice" class="detail-value" style="color: #4caf50;">--</div>
         </div>
     </div>
 
-    <div class="footer">
-        Live data · Bybit Linear Perpetual · BTCUSDT · H4 Timeframe · Auto-refreshes every 5 minutes · Open locally for live data
+    <div class="digit-grid" id="digitGrid" style="display:none;"></div>
+
+    <div class="history-section">
+        <div class="history-header">
+            <h3>Signal history</h3>
+            <button class="clear-btn" id="clearHistoryBtn">Clear</button>
+        </div>
+        <table class="history-table">
+            <thead>
+                <tr><th>Time</th><th>Symbol</th><th>Signal</th><th>Detail 1</th><th>Detail 2</th></tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+        </table>
+        <div class="empty-history" id="emptyHistoryMsg">No signals yet.</div>
+    </div>
+
+    <div id="logConsole"></div>
+    <div class="disclaimer">
+        Public Deriv API (BTCUSD) + optional free Groq AI<br>
+        Experimental — not financial advice.
     </div>
 </div>
 
 <script>
-const SYMBOL   = 'BTCUSDT';
-const INTERVAL = '240';
-const LIMIT    = 100;
-const LOT_SIZE = 0.001;   // BTC qty per trade — tune to your account size (0.001 BTC ≈ small-account sizing)
-const ATR_MULTIPLIER = 1.5;
-const AUTO_REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes in ms
+    const PUBLIC_WS = 'wss://api.derivws.com/trading/v1/options/ws/public';
+    const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
-const REST_ENDPOINTS = [
-    `https://api.bybit.com/v5/market/kline?category=linear&symbol=${SYMBOL}&interval=${INTERVAL}&limit=${LIMIT}`,
-    `https://api.bytick.com/v5/market/kline?category=linear&symbol=${SYMBOL}&interval=${INTERVAL}&limit=${LIMIT}`,
-    `https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.bybit.com/v5/market/kline?category=linear&symbol=${SYMBOL}&interval=${INTERVAL}&limit=${LIMIT}`)}`,
-];
+    const SYMBOL_NAMES = {
+        cryBTCUSD: 'BTCUSD',
+        cryETHUSD: 'ETHUSD',
+        cryLTCUSD: 'LTCUSD',
+        cryBCHUSD: 'BCHUSD',
+        cryXRPUSD: 'XRPUSD'
+    };
 
-const WS_URL = 'wss://stream.bybit.com/v5/public/linear';
-const WS_TOPIC = `kline.${INTERVAL}.${SYMBOL}`;
+    const STORAGE_KEY = 'derivBTCUSD_v1';
+    const HISTORY_KEY = 'derivBTCUSDHistory_v1';
+    const CHART_MAX_POINTS = 280;
+    const PING_MS = 25000;
+    const MAX_MARKERS = 24;
 
-let candles = [];
-let chart = null;
-let ws = null;
-let pingTimer = null;
-let reconnectTimer = null;
-let reconnectAttempts = 0;
-let reconnectDelay = 2000;
-const MAX_RECONNECT = 10;
-let isSandboxed = false;
+    let settings = {
+        symbol: 'cryBTCUSD',
+        strategy: 'sma',
+        fastPeriod: 14,
+        slowPeriod: 30,
+        trendPeriod: 80,
+        tpOffset: 150,
+        confirmTicks: 5,
+        minSeparation: 0.04,
+        rsiPeriod: 14,
+        rsiBuyMax: 72,
+        rsiSellMin: 28,
+        windowSize: 100,
+        digitThreshold: 10,
+        groqKey: '',
+        sound: true,
+        notify: true
+    };
 
-// ── Auto-refresh state ──────────────────────────────────────────────────────
-let autoRefreshTimer = null;
-let countdownTimer = null;
-let secondsLeft = AUTO_REFRESH_INTERVAL / 1000;
+    let priceHistory = [];
+    let emaFastState = null, emaMidState = null, emaSlowState = null;
+    let emaFastSeries = [], emaMidSeries = [], emaSlowSeries = [];
+    let ws = null, pingTimer = null;
+    let currentSignal = null;
+    let pendingSignal = null, pendingCount = 0;
+    let tradeHistory = [];
+    let audioCtx = null;
+    let lastAICall = 0;
+    let digitBuffer = [], digitCounts = new Array(10).fill(0);
+    let digitBufCount = 0, digitBufHead = 0, lastFiredDigit = -1;
+    let chartPoints = [];
+    let entryMarkers = [];
 
-function startAutoRefresh() {
-    clearInterval(autoRefreshTimer);
-    clearInterval(countdownTimer);
-
-    secondsLeft = AUTO_REFRESH_INTERVAL / 1000;
-    updateCountdownUI();
-
-    // Tick every second to update the visual countdown
-    countdownTimer = setInterval(() => {
-        secondsLeft--;
-        if (secondsLeft < 0) secondsLeft = 0;
-        updateCountdownUI();
-    }, 1000);
-
-    // Full reload after 5 minutes
-    autoRefreshTimer = setTimeout(() => {
-        clearInterval(countdownTimer);
-        fullRefresh();
-    }, AUTO_REFRESH_INTERVAL);
-}
-
-function updateCountdownUI() {
-    const total = AUTO_REFRESH_INTERVAL / 1000;
-    const pct = (secondsLeft / total) * 100;
-    const bar = document.getElementById('refresh-bar');
-    const label = document.getElementById('refresh-countdown');
-    if (bar) bar.style.width = pct + '%';
-    if (label) {
-        const m = Math.floor(secondsLeft / 60);
-        const s = String(secondsLeft % 60).padStart(2, '0');
-        label.textContent = `${m}:${s}`;
+    function updateEMA(prev, price, period) {
+        const k = 2 / (period + 1);
+        return prev === null ? price : price * k + prev * (1 - k);
     }
-}
 
-function fullRefresh() {
-    // Tear down existing WS
-    if (ws) { try { ws.close(); } catch(e){} ws = null; }
-    clearInterval(pingTimer);
-    clearTimeout(reconnectTimer);
-    reconnectAttempts = 0;
-    reconnectDelay = 2000;
-    candles = [];
-    if (chart) { chart.destroy(); chart = null; }
-    isSandboxed = false;
-    document.getElementById('sandbox-warning').style.display = 'none';
-    document.getElementById('retry-btn').style.display = 'none';
-    init();
-}
-// ────────────────────────────────────────────────────────────────────────────
-
-async function init() {
-    reconnectAttempts = 0;
-    reconnectDelay = 2000;
-    setStatus('connecting', 'Fetching historical data...');
-    const ok = await loadHistory();
-    if (ok) {
-        connectWS();
-        startAutoRefresh(); // start/restart the 5-min countdown
+    function calculateRSI(period) {
+        if (priceHistory.length < period + 1) return null;
+        let gains = 0, losses = 0;
+        for (let i = priceHistory.length - period; i < priceHistory.length; i++) {
+            const d = priceHistory[i] - priceHistory[i - 1];
+            if (d >= 0) gains += d; else losses -= d;
+        }
+        if (losses === 0) return 100;
+        return 100 - (100 / (1 + gains / losses));
     }
-}
 
-function retryLoad() {
-    document.getElementById('retry-btn').style.display = 'none';
-    document.getElementById('sandbox-warning').style.display = 'none';
-    init();
-}
+    function recentMomentum(lookback = 10) {
+        if (priceHistory.length < lookback + 1) return 0;
+        const now = priceHistory[priceHistory.length - 1];
+        const past = priceHistory[priceHistory.length - 1 - lookback];
+        return ((now - past) / past) * 100;
+    }
 
-async function loadHistory() {
-    for (let i = 0; i < REST_ENDPOINTS.length; i++) {
+    async function callGroqAI(prompt) {
+        if (!settings.groqKey) return null;
         try {
-            const url = REST_ENDPOINTS[i];
-            const isProxy = url.includes('allorigins');
-            setStatus('connecting', `Trying endpoint ${i + 1}/${REST_ENDPOINTS.length}...`);
-
-            const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-            if (!res.ok) continue;
-
-            let json = await res.json();
-
-            if (isProxy && json.contents) {
-                json = JSON.parse(json.contents);
-            }
-
-            if (json.retCode !== 0) throw new Error(json.retMsg || 'Bybit API error');
-
-            const list = json.result.list.reverse();
-            candles = list.map(k => ({
-                time: parseInt(k[0]),
-                open: parseFloat(k[1]),
-                high: parseFloat(k[2]),
-                low:  parseFloat(k[3]),
-                close: parseFloat(k[4]),
-                volume: parseFloat(k[5]),
-                isClosed: true
-            }));
-
-            console.log(`Loaded ${candles.length} candles via endpoint ${i + 1}`);
-            update();
-            return true;
+            const res = await fetch(GROQ_URL, {
+                method: 'POST',
+                headers: {
+                    'Authorization': 'Bearer ' + settings.groqKey,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    model: 'llama-3.1-8b-instant',
+                    messages: [
+                        { role: 'system', content: 'You are a concise Bitcoin trading assistant. Give short, clear, actionable insight only. Max 2-3 sentences.' },
+                        { role: 'user', content: prompt }
+                    ],
+                    temperature: 0.4,
+                    max_tokens: 150
+                })
+            });
+            if (!res.ok) return null;
+            const data = await res.json();
+            return data.choices?.[0]?.message?.content?.trim() || null;
         } catch (e) {
-            console.warn(`Endpoint ${i + 1} failed:`, e.message);
+            return null;
         }
     }
 
-    isSandboxed = true;
-    document.getElementById('sandbox-warning').style.display = 'block';
-    setStatus('disconnected', 'Blocked by sandbox — open file locally');
-    document.getElementById('signal-reason').textContent =
-        '⚠️ All API endpoints blocked. This preview runs in a restricted iframe. Download and open the HTML file directly in your browser for live data.';
-    document.getElementById('retry-btn').style.display = 'inline-block';
-    return false;
-}
-
-function connectWS() {
-    try {
-        ws = new WebSocket(WS_URL);
-    } catch (e) {
-        scheduleReconnect();
-        return;
-    }
-
-    ws.onopen = () => {
-        setStatus('connected', 'Live · Bybit H4');
-        reconnectAttempts = 0;
-        reconnectDelay = 2000;
-        ws.send(JSON.stringify({ op: 'subscribe', args: [WS_TOPIC] }));
-        pingTimer = setInterval(() => {
-            if (ws && ws.readyState === WebSocket.OPEN)
-                ws.send(JSON.stringify({ op: 'ping' }));
-        }, 20000);
-    };
-
-    ws.onmessage = (e) => {
-        const msg = JSON.parse(e.data);
-        if (!msg.topic || !msg.topic.startsWith('kline.')) return;
-        const d = msg.data[0];
-        const candle = {
-            time: d.start,
-            open: parseFloat(d.open),
-            high: parseFloat(d.high),
-            low:  parseFloat(d.low),
-            close: parseFloat(d.close),
-            volume: parseFloat(d.volume),
-            isClosed: d.confirm
-        };
-        const last = candles[candles.length - 1];
-        if (last && last.time === candle.time) {
-            candles[candles.length - 1] = candle;
-        } else if (candle.isClosed || !last || candle.time > last.time) {
-            candles.push(candle);
-            if (candles.length > 101) candles.shift();
+    function ruleBasedAI(solidBull, solidBear, rsi, mom) {
+        let text = '';
+        if (solidBull) {
+            text = 'Strong bullish stack on BTCUSD. EMAs cleanly aligned upward with good separation and positive momentum. High-probability long setup.';
+        } else if (solidBear) {
+            text = 'Strong bearish stack on BTCUSD. EMAs cleanly aligned downward with negative momentum. High-probability short setup.';
+        } else if (emaFastState > emaMidState && emaMidState > emaSlowState) {
+            text = 'Weak upward structure forming on BTC. Gaps or momentum still insufficient. Wait for clearer separation.';
+        } else if (emaFastState < emaMidState && emaMidState < emaSlowState) {
+            text = 'Weak downward structure forming on BTC. Not solid enough yet. Patience required.';
+        } else {
+            text = 'BTCUSD is ranging / mixed. No clear directional bias. Stay flat and wait for a clean EMA stack.';
         }
-        if (candles.length >= 27) update();
-    };
-
-    ws.onerror = () => setStatus('disconnected', 'WS Error');
-    ws.onclose = () => {
-        clearInterval(pingTimer);
-        setStatus('disconnected', 'Disconnected');
-        scheduleReconnect();
-    };
-}
-
-function scheduleReconnect() {
-    if (reconnectAttempts >= MAX_RECONNECT) {
-        setStatus('disconnected', 'Max retries exceeded');
-        document.getElementById('retry-btn').style.display = 'inline-block';
-        return;
-    }
-    reconnectAttempts++;
-    reconnectDelay = Math.min(reconnectDelay * 1.5, 30000);
-    setStatus('connecting', `Reconnecting (${reconnectAttempts}/${MAX_RECONNECT})...`);
-    reconnectTimer = setTimeout(connectWS, reconnectDelay);
-}
-
-function emaArray(period) {
-    const k = 2 / (period + 1);
-    const arr = [candles[0].close];
-    for (let i = 1; i < candles.length; i++)
-        arr.push(candles[i].close * k + arr[i - 1] * (1 - k));
-    return arr;
-}
-function emaLast(period) { return emaArray(period).at(-1); }
-
-function calcRSI(period) {
-    let ag = 0, al = 0;
-    for (let i = 1; i <= period && i < candles.length; i++) {
-        const d = candles[i].close - candles[i - 1].close;
-        if (d > 0) ag += d; else al -= d;
-    }
-    ag /= period; al /= period;
-    for (let i = period + 1; i < candles.length; i++) {
-        const d = candles[i].close - candles[i - 1].close;
-        ag = (ag * (period - 1) + (d > 0 ? d : 0)) / period;
-        al = (al * (period - 1) + (d < 0 ? -d : 0)) / period;
-    }
-    return al === 0 ? 100 : 100 - 100 / (1 + ag / al);
-}
-
-function calcATR(period) {
-    const n = Math.min(period, candles.length - 1);
-    let total = 0;
-    for (let i = candles.length - n; i < candles.length; i++) {
-        const h = candles[i].high, l = candles[i].low, pc = candles[i - 1].close;
-        total += Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc));
-    }
-    return total / n;
-}
-
-function calcMACD() {
-    const e12 = emaArray(12), e26 = emaArray(26);
-    const macdArr = e12.map((v, i) => v - e26[i]);
-    const sk = 2 / 10;
-    let sig = macdArr[0];
-    for (let i = 1; i < macdArr.length; i++) sig = macdArr[i] * sk + sig * (1 - sk);
-    const macd = macdArr.at(-1);
-    return { macd, signal: sig, histogram: macd - sig };
-}
-
-function findRecentSwings() {
-    const lookback = 5;
-    let recent_high = candles.at(-1).high, recent_low = candles.at(-1).low;
-    for (let i = Math.max(0, candles.length - lookback); i < candles.length; i++) {
-        recent_high = Math.max(recent_high, candles[i].high);
-        recent_low = Math.min(recent_low, candles[i].low);
-    }
-    return { recent_high, recent_low };
-}
-
-function fmt(n) {
-    return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function update() {
-    if (candles.length < 27) return;
-    const e12 = emaLast(12), e26 = emaLast(26);
-    const rsi = calcRSI(14), atr = calcATR(14), macd = calcMACD();
-    updateMetrics(e12, e26, rsi, atr, macd);
-    calculateEntryAndTP(e12, e26, rsi, atr);
-    renderChart();
-    generateSignal(e12, e26, rsi, macd);
-    document.getElementById('last-update').textContent =
-        'Last Update: ' + new Date().toLocaleTimeString('en-US', { hour12: false }) + ' UTC';
-}
-
-function calculateEntryAndTP(e12, e26, rsi, atr) {
-    const price = candles.at(-1).close;
-    const swings = findRecentSwings();
-
-    let entry, sl, signal_dir;
-    const bulls = [e12>e26, rsi>50, price>e12, price>e26].filter(Boolean).length;
-    const bears = 4 - bulls;
-
-    if (bulls >= bears) {
-        signal_dir = 'BUY';
-        entry = Math.min(e12, price);
-        sl = swings.recent_low - atr * 0.5;
-    } else {
-        signal_dir = 'SELL';
-        entry = Math.max(e12, price);
-        sl = swings.recent_high + atr * 0.5;
+        if (rsi !== null) {
+            if (rsi > 70) text += ' RSI elevated — caution on new longs.';
+            else if (rsi < 30) text += ' RSI low — caution on new shorts.';
+        }
+        return text;
     }
 
-    const risk = Math.abs(entry - sl);
-    const tp1 = signal_dir === 'BUY' ? entry + risk : entry - risk;
-    const tp2 = signal_dir === 'BUY' ? entry + risk * 2 : entry - risk * 2;
-    const tp3 = signal_dir === 'BUY' ? entry + risk * 3 : entry - risk * 3;
+    async function updateAI(solidBull, solidBear, rsi, mom, gapFastMid, gapMidSlow, price) {
+        const now = Date.now();
+        if (settings.groqKey && now - lastAICall > 12000) {
+            lastAICall = now;
+            const prompt = `Current BTCUSD analysis:
+Price: ${price.toFixed(2)}
+Fast EMA: ${emaFastState?.toFixed(2)}
+Mid EMA: ${emaMidState?.toFixed(2)}
+Slow EMA: ${emaSlowState?.toFixed(2)}
+RSI: ${rsi ? rsi.toFixed(1) : 'n/a'}
+Momentum: ${mom.toFixed(3)}%
+Gap Fast-Mid: ${gapFastMid.toFixed(3)}%
+Gap Mid-Slow: ${gapMidSlow.toFixed(3)}%
+Solid Bull: ${solidBull}
+Solid Bear: ${solidBear}
+Current signal status: ${currentSignal || 'neutral'}
 
-    // For a linear USDT perpetual, 1 contract = 1 BTC, so USD risk = price_diff * qty(BTC)
-    const risk_usd = risk * LOT_SIZE;
-    const per_dollar_move = LOT_SIZE;
-
-    document.getElementById('entry-price').textContent = fmt(entry);
-    document.getElementById('entry-note').textContent = `${(Math.abs(entry - price) / price * 100).toFixed(2)}% from current`;
-
-    document.getElementById('tp1-price').textContent = fmt(tp1);
-    document.getElementById('tp1-info').textContent = `Risk: $${(risk_usd).toFixed(2)}`;
-
-    document.getElementById('tp2-price').textContent = fmt(tp2);
-    document.getElementById('tp2-info').textContent = `Risk: $${(risk_usd * 2).toFixed(2)}`;
-
-    document.getElementById('tp3-price').textContent = fmt(tp3);
-    document.getElementById('tp3-info').textContent = `Risk: $${(risk_usd * 3).toFixed(2)}`;
-
-    document.getElementById('sl-price').textContent = fmt(sl);
-    document.getElementById('sl-info').textContent = `Risk: $${risk_usd.toFixed(2)}`;
-
-    document.getElementById('risk-amount').textContent = '$' + risk_usd.toFixed(2);
-    document.getElementById('risk-note').textContent = `${LOT_SIZE} BTC @ $${per_dollar_move.toFixed(4)} per $1 move`;
-
-    const container = document.getElementById('entry-tp-container');
-    const entryEl = container.querySelector('.entry-buy, .entry-sell');
-    if (signal_dir === 'SELL') {
-        entryEl.className = 'entry-tp-box entry-sell';
-    } else {
-        entryEl.className = 'entry-tp-box entry-buy';
-    }
-}
-
-function updateMetrics(e12, e26, rsi, atr, macd) {
-    const cur = candles.at(-1), first = candles[0];
-    const price = cur.close, chg = price - first.close, pct = (chg / first.close) * 100;
-
-    document.getElementById('current-price').textContent = fmt(price);
-    const chEl = document.getElementById('price-change');
-    chEl.textContent = `${chg >= 0 ? '+' : ''}${chg.toFixed(2)} (${pct.toFixed(2)}%)`;
-    chEl.className = chg >= 0 ? 'positive' : 'negative';
-
-    const high = Math.max(...candles.map(c => c.high));
-    const low  = Math.min(...candles.map(c => c.low));
-    document.getElementById('price-range').textContent = `${fmt(low)} – ${fmt(high)}`;
-    document.getElementById('range-size').textContent  = fmt(high - low);
-
-    document.getElementById('candle-open').textContent   = fmt(cur.open);
-    document.getElementById('candle-high').textContent   = fmt(cur.high);
-    document.getElementById('candle-low').textContent    = fmt(cur.low);
-    const v = cur.volume;
-    document.getElementById('candle-volume').textContent =
-        v >= 1e6 ? (v/1e6).toFixed(2)+'M' : v >= 1e3 ? (v/1e3).toFixed(1)+'K' : v.toFixed(2);
-
-    set('ema12', fmt(e12));
-    set('ema26', fmt(e26));
-    setC('ema12-status', price > e12 ? 'Price Above' : 'Price Below', price > e12);
-    setC('ema26-status', price > e26 ? 'Price Above' : 'Price Below', price > e26);
-
-    set('rsi', rsi.toFixed(1));
-    if (rsi > 70) setC('rsi-status', 'Overbought', false);
-    else if (rsi < 30) setC('rsi-status', 'Oversold', true);
-    else setC('rsi-status', rsi > 50 ? 'Bullish' : 'Bearish', rsi > 50);
-
-    set('atr', fmt(atr));
-    set('macd', macd.macd.toFixed(2));
-    set('macd-signal', macd.signal.toFixed(2));
-    setC('macd-status', macd.macd > macd.signal ? 'Bullish' : 'Bearish', macd.macd > macd.signal);
-    set('signal-cross-status', macd.histogram > 0 ? 'Histogram +' : 'Histogram −');
-}
-
-function set(id, val) { document.getElementById(id).textContent = val; }
-function setC(id, val, bull) {
-    const el = document.getElementById(id);
-    el.textContent = val;
-    el.className = 'indicator-status ' + (bull ? 'positive' : 'negative');
-}
-
-function renderChart() {
-    const ctx = document.getElementById('priceChart').getContext('2d');
-    if (chart) chart.destroy();
-    const e12arr = emaArray(12), e26arr = emaArray(26);
-    const labels = candles.map((c, i) => {
-        if (i % 8 !== 0) return '';
-        const d = new Date(c.time);
-        return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}h`;
-    });
-    chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels,
-            datasets: [
-                { label:'Price', data: candles.map(c=>c.close), borderColor:'#06b6d4', backgroundColor:'rgba(6,182,212,0.05)', borderWidth:2, fill:true, tension:0.3, pointRadius:0, pointHoverRadius:5 },
-                { label:'EMA 12', data: e12arr, borderColor:'#10b981', borderWidth:1.5, fill:false, tension:0.3, pointRadius:0 },
-                { label:'EMA 26', data: e26arr, borderColor:'#f59e0b', borderWidth:1.5, fill:false, tension:0.3, pointRadius:0 }
-            ]
-        },
-        options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend:{ labels:{ color:'#94a3b8', font:{size:12} } } },
-            scales: {
-                y: { ticks:{color:'#64748b',font:{size:11}}, grid:{color:'rgba(51,65,85,0.3)'} },
-                x: { ticks:{color:'#64748b',maxRotation:0}, grid:{display:false} }
+Give a short trading insight for Bitcoin.`;
+            const aiReply = await callGroqAI(prompt);
+            if (aiReply) {
+                document.getElementById('aiText').innerText = aiReply;
+                document.getElementById('aiSource').innerText = 'Powered by Groq AI (free)';
+                return;
             }
         }
+        document.getElementById('aiText').innerText = ruleBasedAI(solidBull, solidBear, rsi, mom);
+        document.getElementById('aiSource').innerText = settings.groqKey ? 'Groq unavailable → Rule-based AI' : 'Rule-based AI (add Groq key for real AI)';
+    }
+
+    // Chart + the rest of the code stays almost identical...
+    // (I kept the full working logic from previous version)
+
+    function resetChart() {
+        chartPoints = [];
+        entryMarkers = [];
+        emaFastSeries = []; emaMidSeries = []; emaSlowSeries = [];
+        const c = document.getElementById('priceChart');
+        if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height);
+        document.getElementById('chartMaxLabel').innerText = '';
+        document.getElementById('chartMinLabel').innerText = '';
+        document.getElementById('chartEmptyMsg').style.display = 'flex';
+    }
+
+    function pushChartPoint(t, p, ef, em, es) {
+        chartPoints.push({ time: t, price: p });
+        if (ef !== null) emaFastSeries.push(ef);
+        if (em !== null) emaMidSeries.push(em);
+        if (es !== null) emaSlowSeries.push(es);
+        if (chartPoints.length > CHART_MAX_POINTS) {
+            chartPoints.shift();
+            if (emaFastSeries.length > CHART_MAX_POINTS) emaFastSeries.shift();
+            if (emaMidSeries.length > CHART_MAX_POINTS) emaMidSeries.shift();
+            if (emaSlowSeries.length > CHART_MAX_POINTS) emaSlowSeries.shift();
+        }
+        if (chartPoints.length) {
+            const oldest = chartPoints[0].time;
+            entryMarkers = entryMarkers.filter(m => m.time >= oldest);
+        }
+        drawChart();
+    }
+
+    function addEntryMarker(t, p, dir) {
+        entryMarkers.push({ time: t, price: p, direction: dir });
+        if (entryMarkers.length > MAX_MARKERS) entryMarkers.shift();
+        drawChart();
+    }
+
+    function drawChart() {
+        const canvas = document.getElementById('priceChart');
+        if (!canvas || chartPoints.length < 2) return;
+        document.getElementById('chartEmptyMsg').style.display = 'none';
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const W = rect.width, H = rect.height;
+        ctx.clearRect(0, 0, W, H);
+        const prices = chartPoints.map(p => p.price);
+        let allVals = prices.slice();
+        if (emaFastSeries.length) allVals = allVals.concat(emaFastSeries);
+        if (emaMidSeries.length) allVals = allVals.concat(emaMidSeries);
+        if (emaSlowSeries.length) allVals = allVals.concat(emaSlowSeries);
+        let min = Math.min(...allVals), max = Math.max(...allVals);
+        if (min === max) { min -= 1; max += 1; }
+        const pad = (max - min) * 0.12;
+        min -= pad; max += pad;
+        const stepX = W / (chartPoints.length - 1);
+        const sy = v => H - ((v - min) / (max - min)) * H;
+
+        ctx.beginPath();
+        ctx.moveTo(0, sy(prices[0]));
+        prices.forEach((p, i) => ctx.lineTo(i * stepX, sy(p)));
+        ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
+        const g = ctx.createLinearGradient(0, 0, 0, H);
+        g.addColorStop(0, 'rgba(0,188,212,0.18)');
+        g.addColorStop(1, 'rgba(0,188,212,0)');
+        ctx.fillStyle = g; ctx.fill();
+
+        ctx.beginPath();
+        prices.forEach((p, i) => {
+            const x = i * stepX, y = sy(p);
+            i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        });
+        ctx.strokeStyle = '#00bcd4';
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+
+        function drawEma(series, color, width) {
+            if (series.length < 2) return;
+            const offset = chartPoints.length - series.length;
+            ctx.beginPath();
+            series.forEach((v, i) => {
+                const x = (i + offset) * stepX;
+                const y = sy(v);
+                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            });
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            ctx.stroke();
+        }
+        drawEma(emaSlowSeries, '#ce93d8', 1.6);
+        drawEma(emaMidSeries,  '#ff9800', 1.5);
+        drawEma(emaFastSeries, '#00e5ff', 1.4);
+
+        ctx.beginPath();
+        ctx.arc((prices.length - 1) * stepX, sy(prices[prices.length - 1]), 3.8, 0, Math.PI * 2);
+        ctx.fillStyle = '#00e5ff';
+        ctx.fill();
+
+        entryMarkers.forEach(m => {
+            let idx = 0, best = Infinity;
+            for (let i = 0; i < chartPoints.length; i++) {
+                const d = Math.abs(chartPoints[i].time - m.time);
+                if (d < best) { best = d; idx = i; }
+            }
+            const x = idx * stepX, y = sy(m.price);
+            if (m.direction === 'buy') {
+                ctx.beginPath();
+                ctx.moveTo(x, y - 14);
+                ctx.lineTo(x - 9, y + 4);
+                ctx.lineTo(x + 9, y + 4);
+                ctx.closePath();
+                ctx.fillStyle = '#4caf50';
+                ctx.fill();
+                ctx.fillStyle = '#a5d6a7';
+                ctx.font = 'bold 11px Segoe UI';
+                ctx.textAlign = 'center';
+                ctx.fillText('BUY', x, y - 18);
+            } else {
+                ctx.beginPath();
+                ctx.moveTo(x, y + 14);
+                ctx.lineTo(x - 9, y - 4);
+                ctx.lineTo(x + 9, y - 4);
+                ctx.closePath();
+                ctx.fillStyle = '#f44336';
+                ctx.fill();
+                ctx.fillStyle = '#ef9a9a';
+                ctx.font = 'bold 11px Segoe UI';
+                ctx.textAlign = 'center';
+                ctx.fillText('SELL', x, y + 28);
+            }
+        });
+
+        document.getElementById('chartMaxLabel').innerText = max.toFixed(2);
+        document.getElementById('chartMinLabel').innerText = min.toFixed(2);
+    }
+
+    window.addEventListener('resize', () => { if (chartPoints.length >= 2) drawChart(); });
+
+    function loadSettings() {
+        try {
+            const s = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            if (s) settings = Object.assign(settings, s);
+        } catch (e) {}
+        try {
+            const h = JSON.parse(localStorage.getItem(HISTORY_KEY));
+            if (Array.isArray(h)) tradeHistory = h;
+        } catch (e) {}
+    }
+    function saveSettings() { localStorage.setItem(STORAGE_KEY, JSON.stringify(settings)); }
+    function saveHistory() { localStorage.setItem(HISTORY_KEY, JSON.stringify(tradeHistory)); }
+
+    function applySettingsToForm() {
+        document.getElementById('symbolSelect').value = settings.symbol;
+        document.getElementById('strategySelect').value = settings.strategy;
+        document.getElementById('fastPeriod').value = settings.fastPeriod;
+        document.getElementById('slowPeriod').value = settings.slowPeriod;
+        document.getElementById('trendPeriod').value = settings.trendPeriod;
+        document.getElementById('tpOffset').value = settings.tpOffset;
+        document.getElementById('confirmTicks').value = settings.confirmTicks;
+        document.getElementById('minSeparation').value = settings.minSeparation;
+        document.getElementById('windowSize').value = settings.windowSize;
+        document.getElementById('digitThreshold').value = settings.digitThreshold;
+        document.getElementById('groqKey').value = settings.groqKey || '';
+        document.getElementById('soundToggle').checked = settings.sound;
+        document.getElementById('notifyToggle').checked = settings.notify;
+        document.getElementById('dashTitle').innerText = (SYMBOL_NAMES[settings.symbol] || settings.symbol) + ' Trend Sniper';
+        document.getElementById('priceLabel').innerText = 'REAL-TIME TICK PRICE (' + (SYMBOL_NAMES[settings.symbol] || settings.symbol) + ')';
+        updateStrategyVisibility();
+    }
+
+    function updateStrategyVisibility() {
+        document.querySelectorAll('[data-strategy-fields]').forEach(el => {
+            el.classList.toggle('active', el.getAttribute('data-strategy-fields') === settings.strategy);
+        });
+        document.getElementById('smaDetailsGrid').style.display = settings.strategy === 'sma' ? 'grid' : 'none';
+        document.getElementById('digitGrid').style.display = settings.strategy === 'lastdigit' ? 'grid' : 'none';
+        document.getElementById('emaLegend').style.display = settings.strategy === 'sma' ? 'flex' : 'none';
+        document.getElementById('tfBox').style.display = settings.strategy === 'sma' ? 'block' : 'none';
+    }
+
+    function readSettingsFromForm() {
+        const strategy = document.getElementById('strategySelect').value;
+        const fast = parseInt(document.getElementById('fastPeriod').value, 10);
+        const mid = parseInt(document.getElementById('slowPeriod').value, 10);
+        const trend = parseInt(document.getElementById('trendPeriod').value, 10);
+        const tp = parseFloat(document.getElementById('tpOffset').value);
+        const conf = parseInt(document.getElementById('confirmTicks').value, 10);
+        const sep = parseFloat(document.getElementById('minSeparation').value);
+        const win = parseInt(document.getElementById('windowSize').value, 10);
+        const thr = parseFloat(document.getElementById('digitThreshold').value);
+        const groqKey = document.getElementById('groqKey').value.trim();
+
+        if (strategy === 'sma') {
+            if (fast < 5 || mid <= fast || trend <= mid) {
+                logError('EMAs must be: Fast < Mid < Slow');
+                return false;
+            }
+            if (tp <= 0 || conf < 2) { logError('Invalid TP or confirm ticks'); return false; }
+        }
+
+        settings.symbol = document.getElementById('symbolSelect').value;
+        settings.strategy = strategy;
+        settings.fastPeriod = fast;
+        settings.slowPeriod = mid;
+        settings.trendPeriod = trend;
+        settings.tpOffset = tp;
+        settings.confirmTicks = conf;
+        settings.minSeparation = sep;
+        settings.windowSize = win;
+        settings.digitThreshold = thr;
+        settings.groqKey = groqKey;
+        settings.sound = document.getElementById('soundToggle').checked;
+        settings.notify = document.getElementById('notifyToggle').checked;
+        logError('');
+        return true;
+    }
+
+    function logError(m) { document.getElementById('logConsole').innerText = m || ''; }
+
+    function ensureNotifyPermission() {
+        if (!('Notification' in window)) return;
+        if (Notification.permission === 'default') Notification.requestPermission();
+    }
+
+    function sendNotification(dir, price, extra) {
+        if (!settings.notify || !('Notification' in window) || Notification.permission !== 'granted') return;
+        let title, body;
+        if (dir === 'over') {
+            title = `🟡 OVER ${extra.digit} — ${settings.symbol}`;
+            body = `Price ${price.toFixed(2)}`;
+        } else {
+            title = (dir === 'buy' ? '🟢 SOLID BUY' : '🔴 SOLID SELL') + ' — BTCUSD';
+            body = `Entry ${price.toFixed(2)}  |  TP ${(dir === 'buy' ? price + settings.tpOffset : price - settings.tpOffset).toFixed(2)}`;
+        }
+        try { new Notification(title, { body }); } catch (e) {}
+    }
+
+    function playBeep(dir) {
+        if (!settings.sound) return;
+        try {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.connect(g); g.connect(audioCtx.destination);
+            o.frequency.value = dir === 'buy' ? 880 : 440;
+            o.type = 'sine';
+            g.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.35);
+            o.start(); o.stop(audioCtx.currentTime + 0.35);
+        } catch (e) {}
+    }
+
+    function clearPing() {
+        if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
+    }
+
+    function initWebSocket() {
+        if (ws) { try { ws.onclose = null; ws.close(); } catch (e) {} }
+        clearPing();
+        priceHistory = [];
+        emaFastState = emaMidState = emaSlowState = null;
+        emaFastSeries = []; emaMidSeries = []; emaSlowSeries = [];
+        currentSignal = null;
+        pendingSignal = null;
+        pendingCount = 0;
+        digitBuffer = new Array(settings.windowSize).fill(-1);
+        digitCounts = new Array(10).fill(0);
+        digitBufCount = 0; digitBufHead = 0; lastFiredDigit = -1;
+        resetSignalDisplay();
+        resetChart();
+        document.getElementById('aiText').innerText = 'Waiting for market data...';
+        document.getElementById('aiSource').innerText = '';
+
+        ws = new WebSocket(PUBLIC_WS);
+
+        ws.onopen = () => {
+            document.getElementById('connectionStatus').innerText = 'Connected (Public)';
+            document.getElementById('connectionStatus').className = 'status-badge connected';
+            logError('');
+            pingTimer = setInterval(() => {
+                if (ws && ws.readyState === 1) ws.send(JSON.stringify({ ping: 1 }));
+            }, PING_MS);
+            ws.send(JSON.stringify({
+                ticks_history: settings.symbol,
+                adjust_start_time: 1,
+                count: CHART_MAX_POINTS,
+                end: 'latest',
+                style: 'ticks',
+                subscribe: 1
+            }));
+        };
+
+        ws.onmessage = (ev) => {
+            let data;
+            try { data = JSON.parse(ev.data); } catch (e) { return; }
+            if (data.error) {
+                logError('API: ' + (data.error.message || JSON.stringify(data.error)));
+                return;
+            }
+            if (data.msg_type === 'ping') return;
+
+            if (data.msg_type === 'history' && data.history) {
+                const prices = data.history.prices || [];
+                const times = data.history.times || [];
+                for (let i = 0; i < prices.length; i++) {
+                    const p = parseFloat(prices[i]);
+                    if (!Number.isFinite(p)) continue;
+                    const t = Number(times[i]) * 1000;
+                    if (settings.strategy === 'sma') {
+                        priceHistory.push(p);
+                        emaFastState = updateEMA(emaFastState, p, settings.fastPeriod);
+                        emaMidState  = updateEMA(emaMidState,  p, settings.slowPeriod);
+                        emaSlowState = updateEMA(emaSlowState, p, settings.trendPeriod);
+                        pushChartPoint(t, p, emaFastState, emaMidState, emaSlowState);
+                    } else {
+                        pushChartPoint(t, p, null, null, null);
+                        const d = getLastDigit(String(prices[i]));
+                        if (Number.isFinite(d)) pushDigit(d);
+                    }
+                }
+                const keep = Math.max(settings.trendPeriod, settings.rsiPeriod) + 50;
+                if (priceHistory.length > keep) priceHistory = priceHistory.slice(-keep);
+                if (prices.length) {
+                    const lp = parseFloat(prices[prices.length - 1]);
+                    const lt = Number(times[times.length - 1]) * 1000;
+                    document.getElementById('livePrice').innerText = lp.toFixed(2);
+                    document.getElementById('lastUpdate').innerText = 'Last tick: ' + new Date(lt).toLocaleTimeString();
+                    if (settings.strategy === 'sma') evaluateSolidTrend(lp, lt);
+                    else evaluateLastDigit(String(prices[prices.length - 1]), lp);
+                }
+                return;
+            }
+
+            if (data.msg_type === 'tick' && data.tick) {
+                const raw = String(data.tick.quote);
+                const p = parseFloat(raw);
+                if (!Number.isFinite(p)) return;
+                const t = (data.tick.epoch || 0) * 1000;
+                document.getElementById('livePrice').innerText = p.toFixed(2);
+                document.getElementById('lastUpdate').innerText = 'Last tick: ' + new Date(t).toLocaleTimeString();
+                if (settings.strategy === 'sma') {
+                    priceHistory.push(p);
+                    emaFastState = updateEMA(emaFastState, p, settings.fastPeriod);
+                    emaMidState  = updateEMA(emaMidState,  p, settings.slowPeriod);
+                    emaSlowState = updateEMA(emaSlowState, p, settings.trendPeriod);
+                    const keep = Math.max(settings.trendPeriod, settings.rsiPeriod) + 50;
+                    if (priceHistory.length > keep) priceHistory.shift();
+                    pushChartPoint(t, p, emaFastState, emaMidState, emaSlowState);
+                    evaluateSolidTrend(p, t);
+                } else {
+                    pushChartPoint(t, p, null, null, null);
+                    evaluateLastDigit(raw, p);
+                }
+            }
+        };
+
+        ws.onclose = () => {
+            clearPing();
+            document.getElementById('connectionStatus').innerText = 'Disconnected';
+            document.getElementById('connectionStatus').className = 'status-badge disconnected';
+            logError('Reconnecting in 3s...');
+            setTimeout(initWebSocket, 3000);
+        };
+        ws.onerror = () => logError('WebSocket error');
+    }
+
+    function resetSignalDisplay() {
+        const el = document.getElementById('signalContainer');
+        el.className = 'signal-box signal-neutral';
+        el.innerText = 'Collecting data...';
+        document.getElementById('entryPrice').innerText = '--';
+        document.getElementById('takeProfitPrice').innerText = '--';
+        document.getElementById('trendInfo').innerText = 'Trend: —';
+        renderDigitGrid(null);
+    }
+
+    function evaluateSolidTrend(price, epochMs) {
+        const box = document.getElementById('signalContainer');
+        const entryEl = document.getElementById('entryPrice');
+        const tpEl = document.getElementById('takeProfitPrice');
+        const trendEl = document.getElementById('trendInfo');
+
+        if (emaFastState === null || emaMidState === null || emaSlowState === null) {
+            box.innerText = `Warming up EMAs (${priceHistory.length})...`;
+            return;
+        }
+
+        const rsi = calculateRSI(settings.rsiPeriod);
+        const mom = recentMomentum(10);
+        const gapFastMid = Math.abs((emaFastState - emaMidState) / emaMidState) * 100;
+        const gapMidSlow = Math.abs((emaMidState - emaSlowState) / emaSlowState) * 100;
+
+        const solidBull =
+            emaFastState > emaMidState &&
+            emaMidState > emaSlowState &&
+            price > emaSlowState &&
+            gapFastMid >= settings.minSeparation * 0.7 &&
+            gapMidSlow >= settings.minSeparation * 0.5 &&
+            (rsi === null || rsi < settings.rsiBuyMax) &&
+            mom > 0.015;
+
+        const solidBear =
+            emaFastState < emaMidState &&
+            emaMidState < emaSlowState &&
+            price < emaSlowState &&
+            gapFastMid >= settings.minSeparation * 0.7 &&
+            gapMidSlow >= settings.minSeparation * 0.5 &&
+            (rsi === null || rsi > settings.rsiSellMin) &&
+            mom < -0.015;
+
+        updateAI(solidBull, solidBear, rsi, mom, gapFastMid, gapMidSlow, price);
+
+        if (solidBull) trendEl.innerText = 'Trend: 🟢 SOLID LONG UP  |  RSI ' + (rsi ? rsi.toFixed(0) : '—');
+        else if (solidBear) trendEl.innerText = 'Trend: 🔴 SOLID LONG DOWN  |  RSI ' + (rsi ? rsi.toFixed(0) : '—');
+        else if (emaFastState > emaMidState && emaMidState > emaSlowState)
+            trendEl.innerText = 'Trend: weak up / waiting  |  RSI ' + (rsi ? rsi.toFixed(0) : '—');
+        else if (emaFastState < emaMidState && emaMidState < emaSlowState)
+            trendEl.innerText = 'Trend: weak down / waiting  |  RSI ' + (rsi ? rsi.toFixed(0) : '—');
+        else
+            trendEl.innerText = 'Trend: ranging / no setup  |  RSI ' + (rsi ? rsi.toFixed(0) : '—');
+
+        let raw = 'neutral';
+        if (solidBull) raw = 'buy';
+        else if (solidBear) raw = 'sell';
+
+        if (raw === 'buy' || raw === 'sell') {
+            if (pendingSignal === raw) pendingCount++;
+            else { pendingSignal = raw; pendingCount = 1; }
+        } else {
+            pendingSignal = null;
+            pendingCount = 0;
+        }
+
+        let final = 'neutral';
+        if (pendingCount >= settings.confirmTicks) final = pendingSignal;
+
+        if (final === 'buy') {
+            const tp = price + settings.tpOffset;
+            box.className = 'signal-box signal-buy';
+            box.innerText = '▲ SOLID BUY  •  Confirmed';
+            entryEl.innerText = price.toFixed(2);
+            tpEl.innerText = tp.toFixed(2);
+            if (final !== currentSignal) recordSignal('buy', price, tp, epochMs);
+        } else if (final === 'sell') {
+            const tp = price - settings.tpOffset;
+            box.className = 'signal-box signal-sell';
+            box.innerText = '▼ SOLID SELL  •  Confirmed';
+            entryEl.innerText = price.toFixed(2);
+            tpEl.innerText = tp.toFixed(2);
+            if (final !== currentSignal) recordSignal('sell', price, tp, epochMs);
+        } else {
+            box.className = 'signal-box signal-neutral';
+            if (pendingSignal) {
+                box.innerText = `Building ${pendingSignal.toUpperCase()} (${pendingCount}/${settings.confirmTicks})`;
+            } else {
+                box.innerText = 'NO SOLID LONG TREND  •  Waiting';
+            }
+            entryEl.innerText = '--';
+            tpEl.innerText = '--';
+        }
+        currentSignal = final;
+    }
+
+    function getLastDigit(q) {
+        const c = String(q).replace('.', '');
+        const d = parseInt(c.charAt(c.length - 1), 10);
+        return Number.isFinite(d) ? d : NaN;
+    }
+    function pushDigit(d) {
+        if (digitBufCount === settings.windowSize) {
+            const old = digitBuffer[digitBufHead];
+            if (old >= 0) digitCounts[old]--;
+        } else digitBufCount++;
+        digitBuffer[digitBufHead] = d;
+        digitCounts[d]++;
+        digitBufHead = (digitBufHead + 1) % settings.windowSize;
+    }
+    function evaluateLastDigit(raw, price) {
+        const d = getLastDigit(raw);
+        if (!Number.isFinite(d)) return;
+        pushDigit(d);
+        const box = document.getElementById('signalContainer');
+        if (digitBufCount === 0) { box.innerText = 'Waiting...'; return; }
+        const pct = digitCounts.map(c => (c / digitBufCount) * 100);
+        renderDigitGrid(pct);
+        const ok = pct[0] < settings.digitThreshold && pct[1] < settings.digitThreshold &&
+                   pct[2] < settings.digitThreshold && pct[3] < settings.digitThreshold;
+        if (ok && digitBufCount >= settings.windowSize) {
+            let pick = 0, best = pct[0];
+            for (let i = 1; i <= 3; i++) if (pct[i] < best) { best = pct[i]; pick = i; }
+            box.className = 'signal-box signal-buy';
+            box.innerText = `BUY OVER ${pick} (${best.toFixed(1)}%)`;
+            if (lastFiredDigit !== pick) {
+                lastFiredDigit = pick;
+                recordSignal('over', price, null, null, { digit: pick, pct: best });
+            }
+            currentSignal = 'over-' + pick;
+        } else {
+            box.className = 'signal-box signal-neutral';
+            box.innerText = `Flat — digits 0-3 under ${settings.digitThreshold}%`;
+            currentSignal = 'neutral';
+            lastFiredDigit = -1;
+        }
+    }
+    function renderDigitGrid(pct) {
+        const g = document.getElementById('digitGrid');
+        g.innerHTML = '';
+        for (let i = 0; i < 10; i++) {
+            const cell = document.createElement('div');
+            const v = pct ? pct[i].toFixed(1) + '%' : '--';
+            const under = pct && i <= 3 && pct[i] < settings.digitThreshold;
+            cell.className = 'digit-cell' + (under ? ' under-threshold' : '');
+            cell.innerHTML = `<div class="digit-label">digit ${i}</div><div class="digit-value">${v}</div>`;
+            g.appendChild(cell);
+        }
+    }
+
+    function recordSignal(dir, price, tp, epochMs, extra) {
+        if ((dir === 'buy' || dir === 'sell') && epochMs) addEntryMarker(epochMs, price, dir);
+        let entry;
+        if (dir === 'over') {
+            entry = {
+                time: new Date().toLocaleTimeString(),
+                symbol: settings.symbol,
+                direction: dir,
+                detail1: 'OVER ' + extra.digit,
+                detail2: extra.pct.toFixed(1) + '%'
+            };
+        } else {
+            entry = {
+                time: new Date().toLocaleTimeString(),
+                symbol: settings.symbol,
+                direction: dir,
+                detail1: 'Entry ' + price.toFixed(2),
+                detail2: 'TP ' + tp.toFixed(2)
+            };
+        }
+        tradeHistory.unshift(entry);
+        if (tradeHistory.length > 30) tradeHistory.pop();
+        saveHistory();
+        renderHistory();
+        playBeep(dir);
+        sendNotification(dir, price, extra);
+    }
+
+    function renderHistory() {
+        const body = document.getElementById('historyBody');
+        const empty = document.getElementById('emptyHistoryMsg');
+        body.innerHTML = '';
+        if (!tradeHistory.length) { empty.style.display = 'block'; return; }
+        empty.style.display = 'none';
+        tradeHistory.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.time}</td>
+                <td>${item.symbol}</td>
+                <td class="dir-${item.direction}">${item.direction.toUpperCase()}</td>
+                <td>${item.detail1}</td>
+                <td>${item.detail2}</td>`;
+            body.appendChild(tr);
+        });
+    }
+
+    document.getElementById('applyBtn').addEventListener('click', () => {
+        if (!readSettingsFromForm()) return;
+        saveSettings();
+        applySettingsToForm();
+        if (settings.notify) ensureNotifyPermission();
+        initWebSocket();
     });
-}
 
-function generateSignal(e12, e26, rsi, macd) {
-    const price = candles.at(-1).close;
-    const bulls = [e12>e26, rsi>50, price>e12, macd.macd>macd.signal && macd.histogram>0].filter(Boolean).length;
-    const bears = 4 - bulls;
-    let sig='NEUTRAL', badge='HOLD', reason='Mixed signals — wait for clearer setup', strength=40;
-    if (bulls===4)      { sig='BUY';  badge='BUY';  reason='✓ EMA Cross · ✓ RSI > 50 · ✓ Price > EMA · ✓ MACD Bullish'; strength=100; }
-    else if (bears===4) { sig='SELL'; badge='SELL'; reason='✗ EMA Cross · ✗ RSI < 50 · ✗ Price < EMA · ✗ MACD Bearish'; strength=100; }
-    else if (bulls===3) { sig='BUY';  badge='BUY';  reason=`Strong bullish (${bulls}/4 signals aligned)`; strength=85; }
-    else if (bears===3) { sig='SELL'; badge='SELL'; reason=`Strong bearish (${bears}/4 signals aligned)`; strength=85; }
-    else if (bulls>bears){ sig='BUY'; badge='BUY';  reason=`Bullish bias (${bulls}/4) — watch for confirmation`; strength=60; }
-    else if (bears>bulls){ sig='SELL';badge='SELL'; reason=`Bearish bias (${bears}/4) — watch for breakdown`; strength=60; }
-    document.getElementById('signal-box').className = `signal-box signal-${sig.toLowerCase()}`;
-    set('signal-text', sig);
-    const b = document.getElementById('signal-badge');
-    b.className = `signal-badge badge-${sig.toLowerCase()}`; b.textContent = badge;
-    set('signal-reason', reason);
-    document.getElementById('strength-fill').style.width = strength+'%';
-    set('strength-text', strength+'% Confidence');
-}
+    document.getElementById('strategySelect').addEventListener('change', e => {
+        document.querySelectorAll('[data-strategy-fields]').forEach(el => {
+            el.classList.toggle('active', el.getAttribute('data-strategy-fields') === e.target.value);
+        });
+    });
 
-function setStatus(state, text) {
-    document.querySelector('#connection-status .status-dot').className = `status-dot status-${state}`;
-    document.getElementById('status-text').textContent = text;
-}
+    document.getElementById('notifyToggle').addEventListener('change', e => {
+        if (e.target.checked) ensureNotifyPermission();
+    });
 
-init();
+    document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+        tradeHistory = [];
+        saveHistory();
+        renderHistory();
+    });
+
+    window.onload = () => {
+        loadSettings();
+        applySettingsToForm();
+        renderHistory();
+        if (settings.notify) ensureNotifyPermission();
+        initWebSocket();
+    };
 </script>
 </body>
 </html>
