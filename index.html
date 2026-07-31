@@ -65,18 +65,20 @@ table.history-table th{color:#90a4ae;font-weight:normal}
 
     <div class="controls-row">
         <div class="symbol-picker">
-            <label for="symbolSelect">Symbol (auto-fallback enabled)</label>
+            <label for="symbolSelect">Symbol (auto-fallback)</label>
             <select id="symbolSelect">
-                <option value="1HZ100V" selected>Volatility 100 (1s) – Best</option>
+                <option value="1HZ100V" selected>Volatility 100 (1s)</option>
                 <option value="1HZ75V">Volatility 75 (1s)</option>
                 <option value="1HZ50V">Volatility 50 (1s)</option>
                 <option value="1HZ25V">Volatility 25 (1s)</option>
                 <option value="1HZ10V">Volatility 10 (1s)</option>
-                <option value="R_100">Volatility 100 Index</option>
-                <option value="R_75">Volatility 75 Index</option>
-                <option value="R_50">Volatility 50 Index</option>
-                <option value="R_25">Volatility 25 Index</option>
-                <option value="R_10">Volatility 10 Index</option>
+                <option value="R_100">Volatility 100</option>
+                <option value="R_75">Volatility 75</option>
+                <option value="R_50">Volatility 50</option>
+                <option value="R_25">Volatility 25</option>
+                <option value="R_10">Volatility 10</option>
+                <option value="cryBTCUSD">BTC/USD (public fallback)</option>
+                <option value="frxEURUSD">EUR/USD (public fallback)</option>
             </select>
         </div>
         <div class="tf-picker">
@@ -84,15 +86,15 @@ table.history-table th{color:#90a4ae;font-weight:normal}
             <select id="tfSelect">
                 <option value="60">1 Minute</option>
                 <option value="120">2 Minutes</option>
-                <option value="300" selected>5 Minutes (Recommended)</option>
+                <option value="300" selected>5 Minutes</option>
                 <option value="900">15 Minutes</option>
             </select>
-            <div class="tf-note">5m works best with CCI(20)</div>
+            <div class="tf-note">5m recommended for CCI(20)</div>
         </div>
     </div>
 
     <details class="settings">
-        <summary>CCI + Entry/TP Settings & Alerts</summary>
+        <summary>CCI + Entry/TP Settings</summary>
         <div class="settings-body">
             <div>
                 <label>CCI Period (locked)</label>
@@ -118,12 +120,11 @@ table.history-table th{color:#90a4ae;font-weight:normal}
         </div>
     </details>
 
-    <div class="chart-box" id="priceChartBox">
+    <div class="chart-box">
         <canvas id="priceChart"></canvas>
         <div class="chart-empty-msg" id="priceEmptyMsg">Waiting for candles...</div>
     </div>
-
-    <div class="chart-box cci-box" id="cciChartBox">
+    <div class="chart-box cci-box">
         <canvas id="cciChart"></canvas>
         <div class="chart-empty-msg" id="cciEmptyMsg">CCI panel loading...</div>
     </div>
@@ -131,28 +132,16 @@ table.history-table th{color:#90a4ae;font-weight:normal}
     <div class="price-card">
         <div class="detail-label" id="priceLabel">LAST CLOSE</div>
         <div id="livePrice" class="price-value">0.00</div>
-        <div id="lastUpdate" style="font-size:.8em;color:#78909c">Connecting to public WebSocket...</div>
+        <div id="lastUpdate" style="font-size:.8em;color:#78909c">Connecting...</div>
     </div>
 
     <div id="signalContainer" class="signal-box signal-neutral">Connecting...</div>
 
     <div class="details-grid">
-        <div class="detail-item">
-            <div class="detail-label">CCI (20)</div>
-            <div id="cciValue" class="detail-value">--</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Entry</div>
-            <div id="entryPrice" class="detail-value">--</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">Take Profit</div>
-            <div id="tpPrice" class="detail-value" style="color:#4caf50">--</div>
-        </div>
-        <div class="detail-item">
-            <div class="detail-label">TF / ±Y</div>
-            <div id="tfDisplay" class="detail-value">5m / ±100</div>
-        </div>
+        <div class="detail-item"><div class="detail-label">CCI (20)</div><div id="cciValue" class="detail-value">--</div></div>
+        <div class="detail-item"><div class="detail-label">Entry</div><div id="entryPrice" class="detail-value">--</div></div>
+        <div class="detail-item"><div class="detail-label">Take Profit</div><div id="tpPrice" class="detail-value" style="color:#4caf50">--</div></div>
+        <div class="detail-item"><div class="detail-label">TF / ±Y</div><div id="tfDisplay" class="detail-value">5m / ±100</div></div>
     </div>
 
     <div class="history-section">
@@ -168,89 +157,52 @@ table.history-table th{color:#90a4ae;font-weight:normal}
     </div>
 
     <div id="logConsole"></div>
-    <div class="disclaimer">Public WebSocket • Auto symbol fallback • Candles + CCI(20) + Entry/TP • Not financial advice</div>
+    <div class="disclaimer">Public WebSocket only • If Volatility is blocked → use VPN or the BTC/EUR fallback • Not financial advice</div>
 </div>
 
 <script>
 const CCI_PERIOD = 20;
 const MAX_CANDLES = 80;
 
-// Priority order – 1s indices first (most reliable on public feed)
 const SYMBOL_FALLBACKS = [
-    '1HZ100V', '1HZ75V', '1HZ50V', '1HZ25V', '1HZ10V',
-    'R_100', 'R_75', 'R_50', 'R_25', 'R_10'
+    '1HZ100V','1HZ75V','1HZ50V','1HZ25V','1HZ10V',
+    'R_100','R_75','R_50','R_25','R_10',
+    'cryBTCUSD','frxEURUSD'          // public fallbacks
 ];
 
-let settings = {
-    symbol: '1HZ100V',
-    granularity: 300,
-    cciThreshold: 100,
-    tpOffset: 150,
-    sound: false,
-    notify: false
-};
-
-let candles = [];
-let cciValues = [];
-let signalMarkers = [];
-let activeEntry = null;
-let ws = null;
-let currentSignal = null;
-let tradeHistory = [];
-let audioCtx = null;
-let lastCandleEpoch = 0;
+let settings = { symbol:'1HZ100V', granularity:300, cciThreshold:100, tpOffset:150, sound:false, notify:false };
+let candles=[], cciValues=[], signalMarkers=[], activeEntry=null, ws=null, currentSignal=null, tradeHistory=[], audioCtx=null, lastCandleEpoch=0;
 let triedSymbols = new Set();
 
-function logError(msg) {
-    document.getElementById('logConsole').innerText = msg || '';
-}
+function logError(m){ document.getElementById('logConsole').innerText = m||''; }
+function tfLabel(g){ return ({60:'1m',120:'2m',300:'5m',900:'15m'})[g]||(g+'s'); }
 
-function tfLabel(g) {
-    if (g === 60) return '1m';
-    if (g === 120) return '2m';
-    if (g === 300) return '5m';
-    if (g === 900) return '15m';
-    return g + 's';
+function loadSettings(){
+    try{ const s=JSON.parse(localStorage.getItem('cci20_pub_v3')); if(s) settings=Object.assign(settings,s); }catch(e){}
+    try{ const h=JSON.parse(localStorage.getItem('cci20_pub_hist_v3')); if(Array.isArray(h)) tradeHistory=h; }catch(e){}
 }
+function saveSettings(){ localStorage.setItem('cci20_pub_v3', JSON.stringify(settings)); }
+function saveHistory(){ localStorage.setItem('cci20_pub_hist_v3', JSON.stringify(tradeHistory)); }
 
-function loadSettings() {
-    try {
-        const s = JSON.parse(localStorage.getItem('cci20_entry_tp_v2'));
-        if (s) settings = Object.assign(settings, s);
-    } catch(e){}
-    try {
-        const h = JSON.parse(localStorage.getItem('cci20_entry_tp_hist_v2'));
-        if (Array.isArray(h)) tradeHistory = h;
-    } catch(e){}
-}
-
-function saveSettings() {
-    localStorage.setItem('cci20_entry_tp_v2', JSON.stringify(settings));
-}
-
-function saveHistory() {
-    localStorage.setItem('cci20_entry_tp_hist_v2', JSON.stringify(tradeHistory));
-}
-
-function applyForm() {
+function applyForm(){
     document.getElementById('symbolSelect').value = settings.symbol;
     document.getElementById('tfSelect').value = String(settings.granularity);
     document.getElementById('cciThreshold').value = settings.cciThreshold;
     document.getElementById('tpOffset').value = settings.tpOffset;
-    document.getElementById('tfDisplay').innerText = tfLabel(settings.granularity) + ' / ±' + settings.cciThreshold;
+    document.getElementById('tfDisplay').innerText = tfLabel(settings.granularity)+' / ±'+settings.cciThreshold;
     document.getElementById('soundToggle').checked = settings.sound;
     document.getElementById('notifyToggle').checked = settings.notify;
-    document.getElementById('dashTitle').innerText = settings.symbol + ' • CCI(20) ' + tfLabel(settings.granularity);
-    document.getElementById('priceLabel').innerText = 'LAST CLOSE (' + settings.symbol + ')';
+    document.getElementById('dashTitle').innerText = settings.symbol+' • CCI(20) '+tfLabel(settings.granularity);
+    document.getElementById('priceLabel').innerText = 'LAST CLOSE ('+settings.symbol+')';
 }
 
-function readForm() {
-    const th = parseFloat(document.getElementById('cciThreshold').value);
-    const tp = parseFloat(document.getElementById('tpOffset').value);
-    if (!Number.isFinite(th) || th < 50) { logError('Threshold must be ≥ 50'); return false; }
-    if (!Number.isFinite(tp) || tp <= 0) { logError('TP offset must be positive'); return false; }
+function readForm(){
+    const th=parseFloat(document.getElementById('cciThreshold').value);
+    const tp=parseFloat(document.getElementById('tpOffset').value);
+    if(!Number.isFinite(th)||th<50){ logError('Threshold ≥ 50'); return false; }
+    if(!Number.isFinite(tp)||tp<=0){ logError('TP offset must be positive'); return false; }
     settings.symbol = document.getElementById('symbolSelect').value;
-    settings.granularity = parseInt(document.getElementById('tfSelect').value, 10);
+    settings.granularity = parseInt(document.getElementById('tfSelect').value,10);
     settings.cciThreshold = th;
     settings.tpOffset = tp;
     settings.sound = document.getElementById('soundToggle').checked;
@@ -259,494 +211,343 @@ function readForm() {
     return true;
 }
 
-function resetCharts() {
-    candles = [];
-    cciValues = [];
-    signalMarkers = [];
-    activeEntry = null;
-    lastCandleEpoch = 0;
-    document.getElementById('entryPrice').innerText = '--';
-    document.getElementById('tpPrice').innerText = '--';
-    const pc = document.getElementById('priceChart');
-    const cc = document.getElementById('cciChart');
-    if (pc) pc.getContext('2d').clearRect(0,0,pc.width,pc.height);
-    if (cc) cc.getContext('2d').clearRect(0,0,cc.width,cc.height);
-    document.getElementById('priceEmptyMsg').style.display = 'flex';
-    document.getElementById('cciEmptyMsg').style.display = 'flex';
+function resetCharts(){
+    candles=[]; cciValues=[]; signalMarkers=[]; activeEntry=null; lastCandleEpoch=0;
+    document.getElementById('entryPrice').innerText='--';
+    document.getElementById('tpPrice').innerText='--';
+    ['priceChart','cciChart'].forEach(id=>{
+        const c=document.getElementById(id);
+        if(c) c.getContext('2d').clearRect(0,0,c.width,c.height);
+    });
+    document.getElementById('priceEmptyMsg').style.display='flex';
+    document.getElementById('cciEmptyMsg').style.display='flex';
 }
 
-function drawPriceChart() {
-    const canvas = document.getElementById('priceChart');
-    if (!canvas || candles.length < 2) return;
-    document.getElementById('priceEmptyMsg').style.display = 'none';
+function drawPriceChart(){
+    const canvas=document.getElementById('priceChart');
+    if(!canvas||candles.length<2) return;
+    document.getElementById('priceEmptyMsg').style.display='none';
+    const dpr=window.devicePixelRatio||1;
+    const rect=canvas.parentElement.getBoundingClientRect();
+    canvas.width=rect.width*dpr; canvas.height=rect.height*dpr;
+    const ctx=canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const W=rect.width, H=rect.height;
+    ctx.clearRect(0,0,W,H);
+    const padT=12,padB=20,padL=8,padR=8;
+    const chartH=H-padT-padB, chartW=W-padL-padR;
+    let min=Infinity,max=-Infinity;
+    candles.forEach(c=>{ min=Math.min(min,c.low); max=Math.max(max,c.high); });
+    if(activeEntry){ min=Math.min(min,activeEntry.price,activeEntry.tp); max=Math.max(max,activeEntry.price,activeEntry.tp); }
+    if(min===max){ min-=1; max+=1; }
+    const rng=max-min; min-=rng*0.05; max+=rng*0.05;
+    const n=candles.length, candleW=Math.max(3,(chartW/n)*0.7), gap=chartW/n;
+    const y=v=>padT+chartH-((v-min)/(max-min))*chartH;
 
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.parentElement.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    const ctx = canvas.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const W = rect.width, H = rect.height;
-    ctx.clearRect(0, 0, W, H);
+    ctx.strokeStyle='#1e2a38'; ctx.lineWidth=1;
+    for(let i=0;i<=4;i++){ const yy=padT+(chartH/4)*i; ctx.beginPath(); ctx.moveTo(padL,yy); ctx.lineTo(W-padR,yy); ctx.stroke(); }
 
-    const padTop = 12, padBot = 20, padL = 8, padR = 8;
-    const chartH = H - padTop - padBot;
-    const chartW = W - padL - padR;
-
-    let min = Infinity, max = -Infinity;
-    candles.forEach(c => {
-        if (c.low < min) min = c.low;
-        if (c.high > max) max = c.high;
-    });
-    if (activeEntry) {
-        min = Math.min(min, activeEntry.price, activeEntry.tp);
-        max = Math.max(max, activeEntry.price, activeEntry.tp);
-    }
-    if (min === max) { min -= 1; max += 1; }
-    const range = max - min;
-    min -= range * 0.05; max += range * 0.05;
-
-    const n = candles.length;
-    const candleW = Math.max(3, (chartW / n) * 0.7);
-    const gap = chartW / n;
-    const yScale = v => padTop + chartH - ((v - min) / (max - min)) * chartH;
-
-    ctx.strokeStyle = '#1e2a38';
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) {
-        const y = padTop + (chartH / 4) * i;
-        ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
-    }
-
-    candles.forEach((c, i) => {
-        const x = padL + i * gap + gap / 2;
-        const isUp = c.close >= c.open;
-        const color = isUp ? '#26a69a' : '#ef5350';
-        ctx.strokeStyle = color; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(x, yScale(c.high)); ctx.lineTo(x, yScale(c.low)); ctx.stroke();
-        const yO = yScale(c.open), yC = yScale(c.close);
-        const bodyTop = Math.min(yO, yC);
-        const bodyH = Math.max(1, Math.abs(yO - yC));
-        ctx.fillStyle = color;
-        ctx.fillRect(x - candleW / 2, bodyTop, candleW, bodyH);
+    candles.forEach((c,i)=>{
+        const x=padL+i*gap+gap/2;
+        const col=c.close>=c.open?'#26a69a':'#ef5350';
+        ctx.strokeStyle=col; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(x,y(c.high)); ctx.lineTo(x,y(c.low)); ctx.stroke();
+        const yO=y(c.open), yC=y(c.close);
+        ctx.fillStyle=col;
+        ctx.fillRect(x-candleW/2, Math.min(yO,yC), candleW, Math.max(1,Math.abs(yO-yC)));
     });
 
-    if (activeEntry) {
-        ctx.strokeStyle = '#42a5f5';
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([6, 4]);
-        ctx.beginPath();
-        ctx.moveTo(padL, yScale(activeEntry.price));
-        ctx.lineTo(W - padR, yScale(activeEntry.price));
-        ctx.stroke();
-
-        ctx.strokeStyle = '#66bb6a';
-        ctx.beginPath();
-        ctx.moveTo(padL, yScale(activeEntry.tp));
-        ctx.lineTo(W - padR, yScale(activeEntry.tp));
-        ctx.stroke();
+    if(activeEntry){
+        ctx.setLineDash([6,4]);
+        ctx.strokeStyle='#42a5f5'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.moveTo(padL,y(activeEntry.price)); ctx.lineTo(W-padR,y(activeEntry.price)); ctx.stroke();
+        ctx.strokeStyle='#66bb6a';
+        ctx.beginPath(); ctx.moveTo(padL,y(activeEntry.tp)); ctx.lineTo(W-padR,y(activeEntry.tp)); ctx.stroke();
         ctx.setLineDash([]);
-
-        ctx.fillStyle = '#42a5f5';
-        ctx.font = '11px Arial';
-        ctx.textAlign = 'right';
-        ctx.fillText('Entry ' + activeEntry.price.toFixed(2), W - padR - 4, yScale(activeEntry.price) - 4);
-        ctx.fillStyle = '#66bb6a';
-        ctx.fillText('TP ' + activeEntry.tp.toFixed(2), W - padR - 4, yScale(activeEntry.tp) - 4);
+        ctx.font='11px Arial'; ctx.textAlign='right';
+        ctx.fillStyle='#42a5f5'; ctx.fillText('Entry '+activeEntry.price.toFixed(2), W-padR-4, y(activeEntry.price)-4);
+        ctx.fillStyle='#66bb6a'; ctx.fillText('TP '+activeEntry.tp.toFixed(2), W-padR-4, y(activeEntry.tp)-4);
     }
 
-    signalMarkers.forEach(m => {
-        if (m.index < 0 || m.index >= candles.length) return;
-        const c = candles[m.index];
-        const x = padL + m.index * gap + gap / 2;
-        ctx.font = 'bold 14px Arial';
-        ctx.textAlign = 'center';
-        if (m.type === 'buy') {
-            ctx.fillStyle = '#00e676';
-            ctx.fillText('▲', x, yScale(c.low) + 16);
-        } else {
-            ctx.fillStyle = '#ff1744';
-            ctx.fillText('▼', x, yScale(c.high) - 6);
-        }
+    signalMarkers.forEach(m=>{
+        if(m.index<0||m.index>=candles.length) return;
+        const c=candles[m.index], x=padL+m.index*gap+gap/2;
+        ctx.font='bold 14px Arial'; ctx.textAlign='center';
+        if(m.type==='buy'){ ctx.fillStyle='#00e676'; ctx.fillText('▲',x,y(c.low)+16); }
+        else{ ctx.fillStyle='#ff1744'; ctx.fillText('▼',x,y(c.high)-6); }
     });
 
-    ctx.fillStyle = '#607d8b';
-    ctx.font = '11px Arial';
-    ctx.textAlign = 'left';
-    ctx.fillText(max.toFixed(2), padL + 2, padTop + 12);
-    ctx.fillText(min.toFixed(2), padL + 2, H - 6);
+    ctx.fillStyle='#607d8b'; ctx.font='11px Arial'; ctx.textAlign='left';
+    ctx.fillText(max.toFixed(2), padL+2, padT+12);
+    ctx.fillText(min.toFixed(2), padL+2, H-6);
 }
 
-function drawCCIChart() {
-    const canvas = document.getElementById('cciChart');
-    if (!canvas || cciValues.length < 2) return;
-    document.getElementById('cciEmptyMsg').style.display = 'none';
+function drawCCIChart(){
+    const canvas=document.getElementById('cciChart');
+    if(!canvas||cciValues.length<2) return;
+    document.getElementById('cciEmptyMsg').style.display='none';
+    const dpr=window.devicePixelRatio||1;
+    const rect=canvas.parentElement.getBoundingClientRect();
+    canvas.width=rect.width*dpr; canvas.height=rect.height*dpr;
+    const ctx=canvas.getContext('2d');
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const W=rect.width, H=rect.height;
+    ctx.clearRect(0,0,W,H);
+    const padT=10,padB=10,padL=8,padR=8;
+    const chartH=H-padT-padB, chartW=W-padL-padR;
+    const Y=settings.cciThreshold;
+    let min=-Y*1.5, max=Y*1.5;
+    cciValues.forEach(v=>{ if(v!==null){ min=Math.min(min,v); max=Math.max(max,v); }});
+    const pad=(max-min)*0.1||20; min-=pad; max+=pad;
+    const n=cciValues.length, gap=chartW/Math.max(n-1,1);
+    const y=v=>padT+chartH-((v-min)/(max-min))*chartH;
 
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.parentElement.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    const ctx = canvas.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const W = rect.width, H = rect.height;
-    ctx.clearRect(0, 0, W, H);
-
-    const padTop = 10, padBot = 10, padL = 8, padR = 8;
-    const chartH = H - padTop - padBot;
-    const chartW = W - padL - padR;
-
-    const Y = settings.cciThreshold;
-    let min = -Y * 1.5, max = Y * 1.5;
-    cciValues.forEach(v => {
-        if (v !== null) {
-            if (v < min) min = v;
-            if (v > max) max = v;
-        }
-    });
-    const pad = (max - min) * 0.1 || 20;
-    min -= pad; max += pad;
-
-    const n = cciValues.length;
-    const gap = chartW / Math.max(n - 1, 1);
-    const yScale = v => padTop + chartH - ((v - min) / (max - min)) * chartH;
-
-    ctx.strokeStyle = '#455a64';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath(); ctx.moveTo(padL, yScale(0)); ctx.lineTo(W - padR, yScale(0)); ctx.stroke();
-
-    ctx.strokeStyle = '#ef5350';
-    ctx.beginPath(); ctx.moveTo(padL, yScale(Y)); ctx.lineTo(W - padR, yScale(Y)); ctx.stroke();
-    ctx.strokeStyle = '#26a69a';
-    ctx.beginPath(); ctx.moveTo(padL, yScale(-Y)); ctx.lineTo(W - padR, yScale(-Y)); ctx.stroke();
+    ctx.setLineDash([4,4]);
+    ctx.strokeStyle='#455a64'; ctx.beginPath(); ctx.moveTo(padL,y(0)); ctx.lineTo(W-padR,y(0)); ctx.stroke();
+    ctx.strokeStyle='#ef5350'; ctx.beginPath(); ctx.moveTo(padL,y(Y)); ctx.lineTo(W-padR,y(Y)); ctx.stroke();
+    ctx.strokeStyle='#26a69a'; ctx.beginPath(); ctx.moveTo(padL,y(-Y)); ctx.lineTo(W-padR,y(-Y)); ctx.stroke();
     ctx.setLineDash([]);
 
-    ctx.strokeStyle = '#ffca28';
-    ctx.lineWidth = 1.8;
+    ctx.strokeStyle='#ffca28'; ctx.lineWidth=1.8;
     ctx.beginPath();
-    let started = false;
-    cciValues.forEach((v, i) => {
-        if (v === null) return;
-        const x = padL + i * gap;
-        const y = yScale(v);
-        if (!started) { ctx.moveTo(x, y); started = true; }
-        else ctx.lineTo(x, y);
+    let started=false;
+    cciValues.forEach((v,i)=>{
+        if(v===null) return;
+        const x=padL+i*gap, yy=y(v);
+        if(!started){ ctx.moveTo(x,yy); started=true; } else ctx.lineTo(x,yy);
     });
     ctx.stroke();
 
-    ctx.fillStyle = '#90a4ae';
-    ctx.font = '10px Arial';
-    ctx.textAlign = 'left';
-    ctx.fillText('+' + Y, padL + 2, yScale(Y) - 3);
-    ctx.fillText('-' + Y, padL + 2, yScale(-Y) + 11);
-    ctx.fillText('CCI', padL + 2, 12);
+    ctx.fillStyle='#90a4ae'; ctx.font='10px Arial'; ctx.textAlign='left';
+    ctx.fillText('+'+Y, padL+2, y(Y)-3);
+    ctx.fillText('-'+Y, padL+2, y(-Y)+11);
+    ctx.fillText('CCI', padL+2, 12);
 }
 
-function redraw() {
-    drawPriceChart();
-    drawCCIChart();
-}
-
+function redraw(){ drawPriceChart(); drawCCIChart(); }
 window.addEventListener('resize', redraw);
 
-function calcCCIAt(idx) {
-    if (idx < CCI_PERIOD - 1) return null;
-    const slice = candles.slice(idx - CCI_PERIOD + 1, idx + 1);
-    const tp = slice.map(c => (c.high + c.low + c.close) / 3);
-    const sma = tp.reduce((a, b) => a + b, 0) / CCI_PERIOD;
-    const md = tp.reduce((a, b) => a + Math.abs(b - sma), 0) / CCI_PERIOD;
-    if (md === 0) return 0;
-    return (tp[tp.length - 1] - sma) / (0.015 * md);
+function calcCCIAt(idx){
+    if(idx<CCI_PERIOD-1) return null;
+    const slice=candles.slice(idx-CCI_PERIOD+1, idx+1);
+    const tp=slice.map(c=>(c.high+c.low+c.close)/3);
+    const sma=tp.reduce((a,b)=>a+b,0)/CCI_PERIOD;
+    const md=tp.reduce((a,b)=>a+Math.abs(b-sma),0)/CCI_PERIOD;
+    if(md===0) return 0;
+    return (tp[tp.length-1]-sma)/(0.015*md);
 }
+function rebuildCCI(){ cciValues=candles.map((_,i)=>calcCCIAt(i)); }
 
-function rebuildCCI() {
-    cciValues = candles.map((_, i) => calcCCIAt(i));
-}
-
-function tryNextSymbol() {
+function tryNextSymbol(){
     triedSymbols.add(settings.symbol);
-    const next = SYMBOL_FALLBACKS.find(s => !triedSymbols.has(s));
-    if (next) {
-        settings.symbol = next;
-        document.getElementById('symbolSelect').value = next;
+    const next=SYMBOL_FALLBACKS.find(s=>!triedSymbols.has(s));
+    if(next){
+        settings.symbol=next;
+        document.getElementById('symbolSelect').value=next;
         applyForm();
-        logError('Symbol invalid → switching to ' + next);
-        setTimeout(subscribe, 600);
+        logError('Symbol blocked → trying '+next);
+        setTimeout(subscribe, 500);
     } else {
-        logError('All Volatility symbols blocked on this public connection. Try a VPN.');
+        logError('All symbols blocked on this public IP. Use a VPN (Singapore / Cyprus / South Africa).');
     }
 }
 
-function initWS() {
-    if (ws) { try { ws.onclose = null; ws.close(); } catch(e) {} }
-    currentSignal = null;
-    activeEntry = null;
-    triedSymbols.clear();
+function initWS(){
+    if(ws){ try{ws.onclose=null; ws.close();}catch(e){} }
+    currentSignal=null; activeEntry=null; triedSymbols.clear();
     resetCharts();
-    document.getElementById('signalContainer').className = 'signal-box signal-neutral';
-    document.getElementById('signalContainer').innerText = 'Connecting to public feed...';
-    document.getElementById('cciValue').innerText = '--';
-    document.getElementById('livePrice').innerText = '0.00';
+    document.getElementById('signalContainer').className='signal-box signal-neutral';
+    document.getElementById('signalContainer').innerText='Connecting to public feed...';
+    document.getElementById('cciValue').innerText='--';
+    document.getElementById('livePrice').innerText='0.00';
 
-    const endpoints = [
+    const endpoints=[
         'wss://ws.derivws.com/websockets/v3?app_id=1089',
         'wss://ws.binaryws.com/websockets/v3?app_id=1089'
     ];
-    let endpointIndex = 0;
+    let ei=0;
 
-    function tryConnect() {
-        if (endpointIndex >= endpoints.length) {
-            logError('Public endpoints failed. Try a VPN or different network.');
-            return;
-        }
-        const url = endpoints[endpointIndex];
-        logError('Connecting to public feed...');
-        ws = new WebSocket(url);
+    function tryConnect(){
+        if(ei>=endpoints.length){ logError('Public endpoints failed. Try a VPN.'); return; }
+        logError('Connecting public WebSocket...');
+        ws=new WebSocket(endpoints[ei]);
 
-        ws.onopen = () => {
-            document.getElementById('connectionStatus').innerText = 'Connected';
-            document.getElementById('connectionStatus').className = 'status-badge connected';
+        ws.onopen=()=>{
+            document.getElementById('connectionStatus').innerText='Connected';
+            document.getElementById('connectionStatus').className='status-badge connected';
             logError('');
             subscribe();
         };
 
-        ws.onmessage = (ev) => {
-            const data = JSON.parse(ev.data);
-            if (data.error) {
-                const msg = (data.error.message || '').toLowerCase();
-                logError('Error: ' + data.error.message);
-                if (msg.includes('invalid') || msg.includes('not offered') || msg.includes('unavailable')) {
+        ws.onmessage=ev=>{
+            const data=JSON.parse(ev.data);
+            if(data.error){
+                logError('Error: '+data.error.message);
+                const m=(data.error.message||'').toLowerCase();
+                if(m.includes('invalid')||m.includes('not offered')||m.includes('unavailable')||m.includes('blocked')){
                     tryNextSymbol();
                 }
                 return;
             }
 
-            if (data.candles && Array.isArray(data.candles)) {
-                triedSymbols.clear(); // success
-                candles = data.candles.map(c => ({
-                    time: c.epoch * 1000,
-                    open: parseFloat(c.open),
-                    high: parseFloat(c.high),
-                    low: parseFloat(c.low),
-                    close: parseFloat(c.close)
+            if(data.candles && Array.isArray(data.candles)){
+                triedSymbols.clear();
+                candles=data.candles.map(c=>({
+                    time:c.epoch*1000,
+                    open:+c.open, high:+c.high, low:+c.low, close:+c.close
                 }));
-                if (candles.length > MAX_CANDLES) candles = candles.slice(-MAX_CANDLES);
-                lastCandleEpoch = candles.length ? candles[candles.length - 1].time : 0;
-                rebuildCCI();
-                redraw();
-                if (candles.length) {
-                    const last = candles[candles.length - 1];
-                    document.getElementById('livePrice').innerText = last.close.toFixed(2);
-                    document.getElementById('lastUpdate').innerText =
-                        'Last candle: ' + new Date(last.time).toLocaleTimeString();
+                if(candles.length>MAX_CANDLES) candles=candles.slice(-MAX_CANDLES);
+                lastCandleEpoch=candles.length?candles[candles.length-1].time:0;
+                rebuildCCI(); redraw();
+                if(candles.length){
+                    const last=candles[candles.length-1];
+                    document.getElementById('livePrice').innerText=last.close.toFixed(2);
+                    document.getElementById('lastUpdate').innerText='Last candle: '+new Date(last.time).toLocaleTimeString();
                     evaluate(last.close);
                 }
                 return;
             }
 
-            if (data.msg_type === 'ohlc' && data.ohlc) {
-                const o = data.ohlc;
-                const epoch = o.epoch * 1000;
-                const candle = {
-                    time: epoch,
-                    open: parseFloat(o.open),
-                    high: parseFloat(o.high),
-                    low: parseFloat(o.low),
-                    close: parseFloat(o.close)
-                };
-
-                if (epoch === lastCandleEpoch && candles.length) {
-                    candles[candles.length - 1] = candle;
-                } else {
+            if(data.msg_type==='ohlc' && data.ohlc){
+                const o=data.ohlc, epoch=o.epoch*1000;
+                const candle={ time:epoch, open:+o.open, high:+o.high, low:+o.low, close:+o.close };
+                if(epoch===lastCandleEpoch && candles.length) candles[candles.length-1]=candle;
+                else {
                     candles.push(candle);
-                    lastCandleEpoch = epoch;
-                    if (candles.length > MAX_CANDLES) {
+                    lastCandleEpoch=epoch;
+                    if(candles.length>MAX_CANDLES){
                         candles.shift();
-                        signalMarkers = signalMarkers
-                            .map(m => ({ ...m, index: m.index - 1 }))
-                            .filter(m => m.index >= 0);
+                        signalMarkers=signalMarkers.map(m=>({...m,index:m.index-1})).filter(m=>m.index>=0);
                     }
                 }
-                rebuildCCI();
-                redraw();
-                document.getElementById('livePrice').innerText = candle.close.toFixed(2);
-                document.getElementById('lastUpdate').innerText =
-                    'Last candle: ' + new Date(epoch).toLocaleTimeString();
+                rebuildCCI(); redraw();
+                document.getElementById('livePrice').innerText=candle.close.toFixed(2);
+                document.getElementById('lastUpdate').innerText='Last candle: '+new Date(epoch).toLocaleTimeString();
                 evaluate(candle.close);
             }
         };
 
-        ws.onclose = () => {
-            document.getElementById('connectionStatus').innerText = 'Disconnected';
-            document.getElementById('connectionStatus').className = 'status-badge disconnected';
-            endpointIndex++;
-            setTimeout(tryConnect, 1500);
-        };
-        ws.onerror = () => {
-            endpointIndex++;
-            setTimeout(tryConnect, 1500);
-        };
+        ws.onclose=()=>{ document.getElementById('connectionStatus').innerText='Disconnected'; document.getElementById('connectionStatus').className='status-badge disconnected'; ei++; setTimeout(tryConnect,1500); };
+        ws.onerror=()=>{ ei++; setTimeout(tryConnect,1500); };
     }
     tryConnect();
 }
 
-function subscribe() {
-    if (!ws || ws.readyState !== 1) return;
+function subscribe(){
+    if(!ws||ws.readyState!==1) return;
     resetCharts();
-    document.getElementById('signalContainer').innerText = 'Collecting candles for ' + settings.symbol + '...';
-    document.getElementById('cciValue').innerText = '--';
-
+    document.getElementById('signalContainer').innerText='Collecting candles for '+settings.symbol+'...';
+    document.getElementById('cciValue').innerText='--';
     ws.send(JSON.stringify({
         ticks_history: settings.symbol,
-        adjust_start_time: 1,
-        count: MAX_CANDLES,
-        end: 'latest',
-        start: 1,
-        style: 'candles',
-        granularity: settings.granularity,
-        subscribe: 1
+        adjust_start_time:1,
+        count:MAX_CANDLES,
+        end:'latest',
+        start:1,
+        style:'candles',
+        granularity:settings.granularity,
+        subscribe:1
     }));
 }
 
-function evaluate(price) {
-    if (cciValues.length === 0) return;
-    const cci = cciValues[cciValues.length - 1];
-    const box = document.getElementById('signalContainer');
-
-    if (cci === null) {
-        box.innerText = `Collecting CCI (${candles.length}/${CCI_PERIOD})...`;
-        return;
-    }
-
-    document.getElementById('cciValue').innerText = cci.toFixed(1);
+function evaluate(price){
+    if(!cciValues.length) return;
+    const cci=cciValues[cciValues.length-1];
+    const box=document.getElementById('signalContainer');
+    if(cci===null){ box.innerText=`Collecting CCI (${candles.length}/${CCI_PERIOD})...`; return; }
+    document.getElementById('cciValue').innerText=cci.toFixed(1);
     let sig;
-
-    if (cci > settings.cciThreshold) {
-        sig = 'buy';
-        box.className = 'signal-box signal-buy';
-        const entry = price;
-        const tp = entry + settings.tpOffset;
-        box.innerText = `BUY — CCI ${cci.toFixed(1)}  |  Entry ${entry.toFixed(2)}  →  TP ${tp.toFixed(2)}`;
-        if (sig !== currentSignal) {
-            activeEntry = { price: entry, tp: tp, type: 'buy' };
-            document.getElementById('entryPrice').innerText = entry.toFixed(2);
-            document.getElementById('tpPrice').innerText = tp.toFixed(2);
-            signalMarkers.push({ index: candles.length - 1, type: 'buy' });
-            record('buy', entry, tp, cci);
-            redraw();
+    if(cci>settings.cciThreshold){
+        sig='buy'; box.className='signal-box signal-buy';
+        const entry=price, tp=entry+settings.tpOffset;
+        box.innerText=`BUY — CCI ${cci.toFixed(1)} | Entry ${entry.toFixed(2)} → TP ${tp.toFixed(2)}`;
+        if(sig!==currentSignal){
+            activeEntry={price:entry,tp,type:'buy'};
+            document.getElementById('entryPrice').innerText=entry.toFixed(2);
+            document.getElementById('tpPrice').innerText=tp.toFixed(2);
+            signalMarkers.push({index:candles.length-1,type:'buy'});
+            record('buy',entry,tp,cci); redraw();
         }
-    } else if (cci < -settings.cciThreshold) {
-        sig = 'sell';
-        box.className = 'signal-box signal-sell';
-        const entry = price;
-        const tp = entry - settings.tpOffset;
-        box.innerText = `SELL — CCI ${cci.toFixed(1)}  |  Entry ${entry.toFixed(2)}  →  TP ${tp.toFixed(2)}`;
-        if (sig !== currentSignal) {
-            activeEntry = { price: entry, tp: tp, type: 'sell' };
-            document.getElementById('entryPrice').innerText = entry.toFixed(2);
-            document.getElementById('tpPrice').innerText = tp.toFixed(2);
-            signalMarkers.push({ index: candles.length - 1, type: 'sell' });
-            record('sell', entry, tp, cci);
-            redraw();
+    } else if(cci<-settings.cciThreshold){
+        sig='sell'; box.className='signal-box signal-sell';
+        const entry=price, tp=entry-settings.tpOffset;
+        box.innerText=`SELL — CCI ${cci.toFixed(1)} | Entry ${entry.toFixed(2)} → TP ${tp.toFixed(2)}`;
+        if(sig!==currentSignal){
+            activeEntry={price:entry,tp,type:'sell'};
+            document.getElementById('entryPrice').innerText=entry.toFixed(2);
+            document.getElementById('tpPrice').innerText=tp.toFixed(2);
+            signalMarkers.push({index:candles.length-1,type:'sell'});
+            record('sell',entry,tp,cci); redraw();
         }
     } else {
-        sig = 'neutral';
-        box.className = 'signal-box signal-neutral';
-        box.innerText = `NEUTRAL — CCI ${cci.toFixed(1)}`;
+        sig='neutral'; box.className='signal-box signal-neutral';
+        box.innerText=`NEUTRAL — CCI ${cci.toFixed(1)}`;
     }
-    currentSignal = sig;
+    currentSignal=sig;
 }
 
-function playBeep(dir) {
-    if (!settings.sound) return;
-    try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const o = audioCtx.createOscillator();
-        const g = audioCtx.createGain();
+function playBeep(dir){
+    if(!settings.sound) return;
+    try{
+        if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+        const o=audioCtx.createOscillator(), g=audioCtx.createGain();
         o.connect(g); g.connect(audioCtx.destination);
-        o.frequency.value = dir === 'buy' ? 880 : 440;
-        o.type = 'sine';
-        g.gain.setValueAtTime(0.15, audioCtx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
-        o.start(); o.stop(audioCtx.currentTime + 0.4);
-    } catch(e) {}
+        o.frequency.value=dir==='buy'?880:440; o.type='sine';
+        g.gain.setValueAtTime(0.15,audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.4);
+        o.start(); o.stop(audioCtx.currentTime+0.4);
+    }catch(e){}
 }
 
-function notify(dir, entry, tp, cci) {
-    if (!settings.notify || !('Notification' in window) || Notification.permission !== 'granted') return;
-    new Notification((dir === 'buy' ? '🟢 BUY' : '🔴 SELL') + ' CCI(20) — ' + settings.symbol, {
-        body: `Entry: ${entry.toFixed(2)} | TP: ${tp.toFixed(2)} | CCI: ${cci.toFixed(1)}`
+function notify(dir,entry,tp,cci){
+    if(!settings.notify||!('Notification'in window)||Notification.permission!=='granted') return;
+    new Notification((dir==='buy'?'🟢 BUY':'🔴 SELL')+' CCI(20) — '+settings.symbol,{
+        body:`Entry: ${entry.toFixed(2)} | TP: ${tp.toFixed(2)} | CCI: ${cci.toFixed(1)}`
     });
 }
 
-function record(dir, entry, tp, cci) {
+function record(dir,entry,tp,cci){
     tradeHistory.unshift({
-        time: new Date().toLocaleTimeString(),
-        symbol: settings.symbol,
-        tf: tfLabel(settings.granularity),
-        direction: dir,
-        entry: entry.toFixed(2),
-        tp: tp.toFixed(2),
-        cci: cci.toFixed(1)
+        time:new Date().toLocaleTimeString(),
+        symbol:settings.symbol,
+        tf:tfLabel(settings.granularity),
+        direction:dir,
+        entry:entry.toFixed(2),
+        tp:tp.toFixed(2),
+        cci:cci.toFixed(1)
     });
-    if (tradeHistory.length > 30) tradeHistory.pop();
-    saveHistory();
-    renderHistory();
-    playBeep(dir);
-    notify(dir, entry, tp, cci);
+    if(tradeHistory.length>30) tradeHistory.pop();
+    saveHistory(); renderHistory();
+    playBeep(dir); notify(dir,entry,tp,cci);
 }
 
-function renderHistory() {
-    const body = document.getElementById('historyBody');
-    const empty = document.getElementById('emptyHistoryMsg');
-    body.innerHTML = '';
-    if (!tradeHistory.length) {
-        empty.style.display = 'block';
-        return;
-    }
-    empty.style.display = 'none';
-    tradeHistory.forEach(i => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${i.time}</td>
-            <td>${i.symbol}</td>
-            <td>${i.tf}</td>
+function renderHistory(){
+    const body=document.getElementById('historyBody');
+    const empty=document.getElementById('emptyHistoryMsg');
+    body.innerHTML='';
+    if(!tradeHistory.length){ empty.style.display='block'; return; }
+    empty.style.display='none';
+    tradeHistory.forEach(i=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${i.time}</td><td>${i.symbol}</td><td>${i.tf}</td>
             <td class="dir-${i.direction}">${i.direction.toUpperCase()}</td>
-            <td>${i.entry}</td>
-            <td>${i.tp}</td>
-            <td>${i.cci}</td>`;
+            <td>${i.entry}</td><td>${i.tp}</td><td>${i.cci}</td>`;
         body.appendChild(tr);
     });
 }
 
-document.getElementById('applyBtn').onclick = () => {
-    if (!readForm()) return;
-    saveSettings();
-    applyForm();
-    if (settings.notify && Notification.permission === 'default') {
-        Notification.requestPermission();
-    }
+document.getElementById('applyBtn').onclick=()=>{
+    if(!readForm()) return;
+    saveSettings(); applyForm();
+    if(settings.notify && Notification.permission==='default') Notification.requestPermission();
     initWS();
 };
-
-document.getElementById('notifyToggle').onchange = e => {
-    if (e.target.checked && Notification.permission === 'default') {
-        Notification.requestPermission();
-    }
+document.getElementById('notifyToggle').onchange=e=>{
+    if(e.target.checked && Notification.permission==='default') Notification.requestPermission();
 };
+document.getElementById('clearHistoryBtn').onclick=()=>{ tradeHistory=[]; saveHistory(); renderHistory(); };
 
-document.getElementById('clearHistoryBtn').onclick = () => {
-    tradeHistory = [];
-    saveHistory();
-    renderHistory();
-};
-
-window.onload = () => {
-    loadSettings();
-    applyForm();
-    renderHistory();
-    initWS();
-};
+window.onload=()=>{ loadSettings(); applyForm(); renderHistory(); initWS(); };
 </script>
 </body>
 </html>
