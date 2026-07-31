@@ -3,19 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Deriv CCI (20) – Public WebSocket</title>
+<title>Deriv CCI (20) Candles + Entry/TP – Public</title>
 <style>
 *{box-sizing:border-box}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#12161f;color:#fff;margin:0;padding:20px;display:flex;justify-content:center}
-.container{width:100%;max-width:640px;background:#1a222d;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.4);border:1px solid #2a3444}
+.container{width:100%;max-width:720px;background:#1a222d;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.4);border:1px solid #2a3444}
 .header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #2a3444;padding-bottom:15px;margin-bottom:20px;flex-wrap:wrap;gap:10px}
-.header h2{margin:0;font-size:1.3em}
+.header h2{margin:0;font-size:1.25em}
 .status-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:.85em;font-weight:bold;background:#ff9800;color:#000}
 .status-badge.connected{background:#4caf50;color:#fff}
 .status-badge.disconnected{background:#f44336;color:#fff}
 .controls-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
 .controls-row label{font-size:.8em;color:#90a4ae;display:block;margin-bottom:4px}
 select,input[type=number]{background:#232d3b;color:#fff;border:1px solid #2a3444;border-radius:6px;padding:8px;font-size:.95em;width:100%}
-.symbol-picker{flex:1;min-width:200px}
+.symbol-picker,.tf-picker{flex:1;min-width:160px}
 details.settings{background:#202836;border-radius:8px;margin-bottom:16px;border:1px solid #2a3444}
 details.settings summary{padding:12px 16px;cursor:pointer;font-weight:bold;color:#90caf9;list-style:none}
 details.settings summary::-webkit-details-marker{display:none}
@@ -27,39 +27,39 @@ button.apply-btn{grid-column:1/-1;background:#1565c0;color:#fff;border:none;bord
 button.apply-btn:hover{background:#1976d2}
 button.clear-btn{background:none;border:1px solid #455a64;color:#90a4ae;border-radius:6px;padding:4px 10px;font-size:.75em;cursor:pointer}
 button.clear-btn:hover{border-color:#f44336;color:#f44336}
-.chart-box{width:100%;height:220px;border-radius:8px;overflow:hidden;border:1px solid #2a3444;margin-bottom:16px;background:#131722;position:relative}
+.chart-box{width:100%;height:280px;border-radius:8px;overflow:hidden;border:1px solid #2a3444;margin-bottom:8px;background:#131722;position:relative}
+.chart-box.cci-box{height:140px;margin-bottom:16px}
 .chart-box canvas{display:block;width:100%;height:100%}
-.chart-range-label{position:absolute;right:8px;font-size:.72em;color:#607d8b;background:rgba(19,23,34,.7);padding:2px 6px;border-radius:4px;pointer-events:none}
-.chart-range-max{top:8px}.chart-range-min{bottom:8px}
 .chart-empty-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;font-size:.85em;color:#607d8b}
-.price-card{background:#232d3b;padding:20px;border-radius:8px;text-align:center;margin-bottom:20px}
-.price-value{font-size:2.2em;font-weight:bold;color:#00bcd4;margin:10px 0}
-.signal-box{padding:20px;border-radius:8px;text-align:center;font-size:1.2em;font-weight:bold;margin-top:15px;transition:all .3s}
+.price-card{background:#232d3b;padding:16px;border-radius:8px;text-align:center;margin-bottom:16px}
+.price-value{font-size:2em;font-weight:bold;color:#00bcd4;margin:8px 0}
+.signal-box{padding:18px;border-radius:8px;text-align:center;font-size:1.15em;font-weight:bold;margin-top:12px;transition:all .3s}
 .signal-neutral{background:#2e3846;color:#b0bec5}
 .signal-buy{background:#1b5e20;color:#81c784;border:2px solid #4caf50}
 .signal-sell{background:#b71c1c;color:#ef9a9a;border:2px solid #f44336}
-.details-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:15px}
+.details-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-top:12px}
 .detail-item{background:#232d3b;padding:12px;border-radius:6px;text-align:center}
-.detail-label{font-size:.85em;color:#90a4ae;margin-bottom:4px}
-.detail-value{font-weight:bold;font-size:1.1em}
-.history-section{margin-top:22px}
+.detail-label{font-size:.75em;color:#90a4ae;margin-bottom:4px}
+.detail-value{font-weight:bold;font-size:1.05em}
+.history-section{margin-top:20px}
 .history-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .history-header h3{margin:0;font-size:1em;color:#90caf9}
-table.history-table{width:100%;border-collapse:collapse;font-size:.82em}
-table.history-table th,table.history-table td{padding:6px 8px;text-align:center;border-bottom:1px solid #2a3444}
+table.history-table{width:100%;border-collapse:collapse;font-size:.8em}
+table.history-table th,table.history-table td{padding:6px 6px;text-align:center;border-bottom:1px solid #2a3444}
 table.history-table th{color:#90a4ae;font-weight:normal}
 .dir-buy{color:#81c784;font-weight:bold}
 .dir-sell{color:#ef9a9a;font-weight:bold}
 .empty-history{color:#607d8b;text-align:center;padding:12px;font-size:.85em}
-#logConsole{margin-top:15px;font-size:.8em;color:#ff8a80;text-align:center;min-height:1em}
-.disclaimer{margin-top:18px;font-size:.72em;color:#607d8b;text-align:center;line-height:1.4}
+#logConsole{margin-top:12px;font-size:.8em;color:#ff8a80;text-align:center;min-height:1em}
+.disclaimer{margin-top:16px;font-size:.72em;color:#607d8b;text-align:center;line-height:1.4}
 .locked{background:#1e2a38!important;color:#90a4ae!important;cursor:not-allowed}
+.tf-note{font-size:.75em;color:#78909c;margin-top:4px}
 </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
-        <h2 id="dashTitle">CCI (20) – Public Feed</h2>
+        <h2 id="dashTitle">CCI (20) + Entry/TP</h2>
         <span id="connectionStatus" class="status-badge disconnected">Connecting...</span>
     </div>
 
@@ -67,7 +67,7 @@ table.history-table th{color:#90a4ae;font-weight:normal}
         <div class="symbol-picker">
             <label for="symbolSelect">Symbol</label>
             <select id="symbolSelect">
-                <option value="1HZ100V">Volatility 100 (1s) – Recommended</option>
+                <option value="1HZ100V">Volatility 100 (1s)</option>
                 <option value="R_100">Volatility 100 Index</option>
                 <option value="1HZ75V">Volatility 75 (1s)</option>
                 <option value="R_75">Volatility 75 Index</option>
@@ -79,10 +79,20 @@ table.history-table th{color:#90a4ae;font-weight:normal}
                 <option value="R_10">Volatility 10 Index</option>
             </select>
         </div>
+        <div class="tf-picker">
+            <label for="tfSelect">Timeframe</label>
+            <select id="tfSelect">
+                <option value="60">1 Minute</option>
+                <option value="120">2 Minutes</option>
+                <option value="300" selected>5 Minutes (Recommended)</option>
+                <option value="900">15 Minutes</option>
+            </select>
+            <div class="tf-note">5m works best with CCI(20)</div>
+        </div>
     </div>
 
     <details class="settings">
-        <summary>CCI Settings & Alerts</summary>
+        <summary>CCI + Entry/TP Settings & Alerts</summary>
         <div class="settings-body">
             <div>
                 <label>CCI Period (locked)</label>
@@ -91,6 +101,10 @@ table.history-table th{color:#90a4ae;font-weight:normal}
             <div>
                 <label for="cciThreshold">Threshold (±Y)</label>
                 <input type="number" id="cciThreshold" min="50" max="300" value="100">
+            </div>
+            <div>
+                <label for="tpOffset">Take Profit offset (points)</label>
+                <input type="number" id="tpOffset" min="1" step="1" value="150">
             </div>
             <div class="full toggle-row">
                 <span>🔊 Sound alert</span>
@@ -104,15 +118,18 @@ table.history-table th{color:#90a4ae;font-weight:normal}
         </div>
     </details>
 
-    <div class="chart-box">
+    <div class="chart-box" id="priceChartBox">
         <canvas id="priceChart"></canvas>
-        <div class="chart-range-label chart-range-max" id="chartMaxLabel"></div>
-        <div class="chart-range-label chart-range-min" id="chartMinLabel"></div>
-        <div class="chart-empty-msg" id="chartEmptyMsg">Waiting for tick history...</div>
+        <div class="chart-empty-msg" id="priceEmptyMsg">Waiting for candles...</div>
+    </div>
+
+    <div class="chart-box cci-box" id="cciChartBox">
+        <canvas id="cciChart"></canvas>
+        <div class="chart-empty-msg" id="cciEmptyMsg">CCI panel loading...</div>
     </div>
 
     <div class="price-card">
-        <div class="detail-label" id="priceLabel">REAL-TIME TICK PRICE</div>
+        <div class="detail-label" id="priceLabel">LAST CLOSE</div>
         <div id="livePrice" class="price-value">0.00</div>
         <div id="lastUpdate" style="font-size:.8em;color:#78909c">Connecting to public WebSocket...</div>
     </div>
@@ -121,12 +138,20 @@ table.history-table th{color:#90a4ae;font-weight:normal}
 
     <div class="details-grid">
         <div class="detail-item">
-            <div class="detail-label">CCI (20) Value</div>
+            <div class="detail-label">CCI (20)</div>
             <div id="cciValue" class="detail-value">--</div>
         </div>
         <div class="detail-item">
-            <div class="detail-label">Threshold (±Y)</div>
-            <div id="cciThresholdDisplay" class="detail-value">±100</div>
+            <div class="detail-label">Entry</div>
+            <div id="entryPrice" class="detail-value">--</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">Take Profit</div>
+            <div id="tpPrice" class="detail-value" style="color:#4caf50">--</div>
+        </div>
+        <div class="detail-item">
+            <div class="detail-label">TF / ±Y</div>
+            <div id="tfDisplay" class="detail-value">5m / ±100</div>
         </div>
     </div>
 
@@ -136,102 +161,117 @@ table.history-table th{color:#90a4ae;font-weight:normal}
             <button class="clear-btn" id="clearHistoryBtn">Clear</button>
         </div>
         <table class="history-table">
-            <thead><tr><th>Time</th><th>Symbol</th><th>Signal</th><th>Price</th><th>CCI</th></tr></thead>
+            <thead><tr><th>Time</th><th>Symbol</th><th>TF</th><th>Signal</th><th>Entry</th><th>TP</th><th>CCI</th></tr></thead>
             <tbody id="historyBody"></tbody>
         </table>
         <div class="empty-history" id="emptyHistoryMsg">No signal changes logged yet.</div>
     </div>
 
     <div id="logConsole"></div>
-    <div class="disclaimer">Public WebSocket only • Strict CCI (20, Y) • Not financial advice</div>
+    <div class="disclaimer">Public WebSocket • Candles + CCI(20) + Entry/TP + Arrows • Not financial advice</div>
 </div>
 
 <script>
 const CCI_PERIOD = 20;
-const CHART_MAX = 150;
+const MAX_CANDLES = 80;
 
 let settings = {
     symbol: '1HZ100V',
+    granularity: 300,
     cciThreshold: 100,
+    tpOffset: 150,
     sound: false,
     notify: false
 };
 
-let cciHistory = [];
+let candles = [];
+let cciValues = [];
+let signalMarkers = [];
+let activeEntry = null;   // {price, tp, type}
 let ws = null;
 let currentSignal = null;
 let tradeHistory = [];
 let audioCtx = null;
-let chartPoints = [];
+let lastCandleEpoch = 0;
 
-// ---------- helpers ----------
 function logError(msg) {
     document.getElementById('logConsole').innerText = msg || '';
 }
 
+function tfLabel(g) {
+    if (g === 60) return '1m';
+    if (g === 120) return '2m';
+    if (g === 300) return '5m';
+    if (g === 900) return '15m';
+    return g + 's';
+}
+
 function loadSettings() {
     try {
-        const s = JSON.parse(localStorage.getItem('cci20_public'));
+        const s = JSON.parse(localStorage.getItem('cci20_entry_tp'));
         if (s) settings = Object.assign(settings, s);
     } catch(e){}
     try {
-        const h = JSON.parse(localStorage.getItem('cci20_public_hist'));
+        const h = JSON.parse(localStorage.getItem('cci20_entry_tp_hist'));
         if (Array.isArray(h)) tradeHistory = h;
     } catch(e){}
 }
 
 function saveSettings() {
-    localStorage.setItem('cci20_public', JSON.stringify(settings));
+    localStorage.setItem('cci20_entry_tp', JSON.stringify(settings));
 }
 
 function saveHistory() {
-    localStorage.setItem('cci20_public_hist', JSON.stringify(tradeHistory));
+    localStorage.setItem('cci20_entry_tp_hist', JSON.stringify(tradeHistory));
 }
 
 function applyForm() {
     document.getElementById('symbolSelect').value = settings.symbol;
+    document.getElementById('tfSelect').value = String(settings.granularity);
     document.getElementById('cciThreshold').value = settings.cciThreshold;
-    document.getElementById('cciThresholdDisplay').innerText = '±' + settings.cciThreshold;
+    document.getElementById('tpOffset').value = settings.tpOffset;
+    document.getElementById('tfDisplay').innerText = tfLabel(settings.granularity) + ' / ±' + settings.cciThreshold;
     document.getElementById('soundToggle').checked = settings.sound;
     document.getElementById('notifyToggle').checked = settings.notify;
-    document.getElementById('dashTitle').innerText = settings.symbol + ' • CCI (20)';
-    document.getElementById('priceLabel').innerText = 'REAL-TIME TICK PRICE (' + settings.symbol + ')';
+    document.getElementById('dashTitle').innerText = settings.symbol + ' • CCI(20) ' + tfLabel(settings.granularity);
+    document.getElementById('priceLabel').innerText = 'LAST CLOSE (' + settings.symbol + ')';
 }
 
 function readForm() {
     const th = parseFloat(document.getElementById('cciThreshold').value);
-    if (!Number.isFinite(th) || th < 50) {
-        logError('Threshold must be ≥ 50');
-        return false;
-    }
+    const tp = parseFloat(document.getElementById('tpOffset').value);
+    if (!Number.isFinite(th) || th < 50) { logError('Threshold must be ≥ 50'); return false; }
+    if (!Number.isFinite(tp) || tp <= 0) { logError('TP offset must be positive'); return false; }
     settings.symbol = document.getElementById('symbolSelect').value;
+    settings.granularity = parseInt(document.getElementById('tfSelect').value, 10);
     settings.cciThreshold = th;
+    settings.tpOffset = tp;
     settings.sound = document.getElementById('soundToggle').checked;
     settings.notify = document.getElementById('notifyToggle').checked;
     logError('');
     return true;
 }
 
-// ---------- chart ----------
-function resetChart() {
-    chartPoints = [];
-    const c = document.getElementById('priceChart');
-    if (c) c.getContext('2d').clearRect(0,0,c.width,c.height);
-    document.getElementById('chartMaxLabel').innerText = '';
-    document.getElementById('chartMinLabel').innerText = '';
-    document.getElementById('chartEmptyMsg').style.display = 'flex';
+function resetCharts() {
+    candles = [];
+    cciValues = [];
+    signalMarkers = [];
+    activeEntry = null;
+    lastCandleEpoch = 0;
+    document.getElementById('entryPrice').innerText = '--';
+    document.getElementById('tpPrice').innerText = '--';
+    const pc = document.getElementById('priceChart');
+    const cc = document.getElementById('cciChart');
+    if (pc) pc.getContext('2d').clearRect(0,0,pc.width,pc.height);
+    if (cc) cc.getContext('2d').clearRect(0,0,cc.width,cc.height);
+    document.getElementById('priceEmptyMsg').style.display = 'flex';
+    document.getElementById('cciEmptyMsg').style.display = 'flex';
 }
 
-function pushChart(t, p) {
-    chartPoints.push({time: t, price: p});
-    if (chartPoints.length > CHART_MAX) chartPoints.shift();
-    drawChart();
-}
-
-function drawChart() {
+function drawPriceChart() {
     const canvas = document.getElementById('priceChart');
-    if (!canvas || chartPoints.length < 2) return;
-    document.getElementById('chartEmptyMsg').style.display = 'none';
+    if (!canvas || candles.length < 2) return;
+    document.getElementById('priceEmptyMsg').style.display = 'none';
 
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.parentElement.getBoundingClientRect();
@@ -239,100 +279,226 @@ function drawChart() {
     canvas.height = rect.height * dpr;
     const ctx = canvas.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const w = rect.width, h = rect.height;
-    ctx.clearRect(0, 0, w, h);
+    const W = rect.width, H = rect.height;
+    ctx.clearRect(0, 0, W, H);
 
-    const prices = chartPoints.map(p => p.price);
-    let min = Math.min(...prices), max = Math.max(...prices);
-    if (min === max) { min -= 1; max += 1; }
-    const pad = (max - min) * 0.1;
-    min -= pad; max += pad;
+    const padTop = 12, padBot = 20, padL = 8, padR = 8;
+    const chartH = H - padTop - padBot;
+    const chartW = W - padL - padR;
 
-    const stepX = w / (chartPoints.length - 1);
-    const sy = v => h - ((v - min) / (max - min)) * h;
-
-    ctx.beginPath();
-    ctx.moveTo(0, sy(prices[0]));
-    prices.forEach((p, i) => ctx.lineTo(i * stepX, sy(p)));
-    ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath();
-    const g = ctx.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, 'rgba(0,188,212,0.25)');
-    g.addColorStop(1, 'rgba(0,188,212,0)');
-    ctx.fillStyle = g; ctx.fill();
-
-    ctx.beginPath();
-    prices.forEach((p, i) => {
-        const x = i * stepX, y = sy(p);
-        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    let min = Infinity, max = -Infinity;
+    candles.forEach(c => {
+        if (c.low < min) min = c.low;
+        if (c.high > max) max = c.high;
     });
-    ctx.strokeStyle = '#00bcd4';
-    ctx.lineWidth = 1.6;
-    ctx.lineJoin = 'round';
-    ctx.stroke();
+    if (activeEntry) {
+        if (activeEntry.price < min) min = activeEntry.price;
+        if (activeEntry.price > max) max = activeEntry.price;
+        if (activeEntry.tp < min) min = activeEntry.tp;
+        if (activeEntry.tp > max) max = activeEntry.tp;
+    }
+    if (min === max) { min -= 1; max += 1; }
+    const range = max - min;
+    min -= range * 0.05; max += range * 0.05;
 
-    const lx = (prices.length - 1) * stepX;
-    const ly = sy(prices[prices.length - 1]);
-    ctx.beginPath();
-    ctx.arc(lx, ly, 3, 0, Math.PI * 2);
-    ctx.fillStyle = '#00e5ff';
-    ctx.fill();
+    const n = candles.length;
+    const candleW = Math.max(3, (chartW / n) * 0.7);
+    const gap = chartW / n;
+    const yScale = v => padTop + chartH - ((v - min) / (max - min)) * chartH;
 
-    document.getElementById('chartMaxLabel').innerText = max.toFixed(2);
-    document.getElementById('chartMinLabel').innerText = min.toFixed(2);
-}
-
-window.addEventListener('resize', () => {
-    if (chartPoints.length >= 2) drawChart();
-});
-
-// ---------- WebSocket (PUBLIC ONLY) ----------
-function initWS() {
-    if (ws) {
-        try { ws.onclose = null; ws.close(); } catch(e) {}
+    ctx.strokeStyle = '#1e2a38';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+        const y = padTop + (chartH / 4) * i;
+        ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
     }
 
-    cciHistory = [];
+    candles.forEach((c, i) => {
+        const x = padL + i * gap + gap / 2;
+        const isUp = c.close >= c.open;
+        const color = isUp ? '#26a69a' : '#ef5350';
+        ctx.strokeStyle = color; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(x, yScale(c.high)); ctx.lineTo(x, yScale(c.low)); ctx.stroke();
+        const yO = yScale(c.open), yC = yScale(c.close);
+        const bodyTop = Math.min(yO, yC);
+        const bodyH = Math.max(1, Math.abs(yO - yC));
+        ctx.fillStyle = color;
+        ctx.fillRect(x - candleW / 2, bodyTop, candleW, bodyH);
+    });
+
+    // Entry + TP horizontal lines
+    if (activeEntry) {
+        // Entry line
+        ctx.strokeStyle = '#42a5f5';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(padL, yScale(activeEntry.price));
+        ctx.lineTo(W - padR, yScale(activeEntry.price));
+        ctx.stroke();
+
+        // TP line
+        ctx.strokeStyle = '#66bb6a';
+        ctx.beginPath();
+        ctx.moveTo(padL, yScale(activeEntry.tp));
+        ctx.lineTo(W - padR, yScale(activeEntry.tp));
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#42a5f5';
+        ctx.font = '11px Arial';
+        ctx.textAlign = 'right';
+        ctx.fillText('Entry ' + activeEntry.price.toFixed(2), W - padR - 4, yScale(activeEntry.price) - 4);
+        ctx.fillStyle = '#66bb6a';
+        ctx.fillText('TP ' + activeEntry.tp.toFixed(2), W - padR - 4, yScale(activeEntry.tp) - 4);
+    }
+
+    // Buy / Sell arrows
+    signalMarkers.forEach(m => {
+        if (m.index < 0 || m.index >= candles.length) return;
+        const c = candles[m.index];
+        const x = padL + m.index * gap + gap / 2;
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'center';
+        if (m.type === 'buy') {
+            ctx.fillStyle = '#00e676';
+            ctx.fillText('▲', x, yScale(c.low) + 16);
+        } else {
+            ctx.fillStyle = '#ff1744';
+            ctx.fillText('▼', x, yScale(c.high) - 6);
+        }
+    });
+
+    ctx.fillStyle = '#607d8b';
+    ctx.font = '11px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(max.toFixed(2), padL + 2, padTop + 12);
+    ctx.fillText(min.toFixed(2), padL + 2, H - 6);
+}
+
+function drawCCIChart() {
+    const canvas = document.getElementById('cciChart');
+    if (!canvas || cciValues.length < 2) return;
+    document.getElementById('cciEmptyMsg').style.display = 'none';
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const W = rect.width, H = rect.height;
+    ctx.clearRect(0, 0, W, H);
+
+    const padTop = 10, padBot = 10, padL = 8, padR = 8;
+    const chartH = H - padTop - padBot;
+    const chartW = W - padL - padR;
+
+    const Y = settings.cciThreshold;
+    let min = -Y * 1.5, max = Y * 1.5;
+    cciValues.forEach(v => {
+        if (v !== null) {
+            if (v < min) min = v;
+            if (v > max) max = v;
+        }
+    });
+    const pad = (max - min) * 0.1 || 20;
+    min -= pad; max += pad;
+
+    const n = cciValues.length;
+    const gap = chartW / Math.max(n - 1, 1);
+    const yScale = v => padTop + chartH - ((v - min) / (max - min)) * chartH;
+
+    ctx.strokeStyle = '#455a64';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(padL, yScale(0)); ctx.lineTo(W - padR, yScale(0)); ctx.stroke();
+
+    ctx.strokeStyle = '#ef5350';
+    ctx.beginPath(); ctx.moveTo(padL, yScale(Y)); ctx.lineTo(W - padR, yScale(Y)); ctx.stroke();
+    ctx.strokeStyle = '#26a69a';
+    ctx.beginPath(); ctx.moveTo(padL, yScale(-Y)); ctx.lineTo(W - padR, yScale(-Y)); ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.strokeStyle = '#ffca28';
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    let started = false;
+    cciValues.forEach((v, i) => {
+        if (v === null) return;
+        const x = padL + i * gap;
+        const y = yScale(v);
+        if (!started) { ctx.moveTo(x, y); started = true; }
+        else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    ctx.fillStyle = '#90a4ae';
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText('+' + Y, padL + 2, yScale(Y) - 3);
+    ctx.fillText('-' + Y, padL + 2, yScale(-Y) + 11);
+    ctx.fillText('CCI', padL + 2, 12);
+}
+
+function redraw() {
+    drawPriceChart();
+    drawCCIChart();
+}
+
+window.addEventListener('resize', redraw);
+
+function calcCCIAt(idx) {
+    if (idx < CCI_PERIOD - 1) return null;
+    const slice = candles.slice(idx - CCI_PERIOD + 1, idx + 1);
+    const tp = slice.map(c => (c.high + c.low + c.close) / 3);
+    const sma = tp.reduce((a, b) => a + b, 0) / CCI_PERIOD;
+    const md = tp.reduce((a, b) => a + Math.abs(b - sma), 0) / CCI_PERIOD;
+    if (md === 0) return 0;
+    return (tp[tp.length - 1] - sma) / (0.015 * md);
+}
+
+function rebuildCCI() {
+    cciValues = candles.map((_, i) => calcCCIAt(i));
+}
+
+function initWS() {
+    if (ws) { try { ws.onclose = null; ws.close(); } catch(e) {} }
     currentSignal = null;
-    resetChart();
+    activeEntry = null;
+    resetCharts();
     document.getElementById('signalContainer').className = 'signal-box signal-neutral';
     document.getElementById('signalContainer').innerText = 'Connecting to public feed...';
     document.getElementById('cciValue').innerText = '--';
     document.getElementById('livePrice').innerText = '0.00';
 
-    // Official public endpoint (no app_id needed)
     const endpoints = [
-        'wss://api.derivws.com/trading/v1/options/ws/public',
         'wss://ws.derivws.com/websockets/v3?app_id=1089',
-        'wss://ws.binaryws.com/websockets/v3?app_id=1089'
+        'wss://ws.binaryws.com/websockets/v3?app_id=1089',
+        'wss://api.derivws.com/trading/v1/options/ws/public'
     ];
-
     let endpointIndex = 0;
 
     function tryConnect() {
         if (endpointIndex >= endpoints.length) {
-            logError('All public endpoints failed. Try a VPN or different network.');
+            logError('All public endpoints failed. Try a VPN.');
             return;
         }
-
         const url = endpoints[endpointIndex];
-        logError('Trying: ' + url.split('?')[0] + ' ...');
-
+        logError('Trying public endpoint...');
         ws = new WebSocket(url);
 
         ws.onopen = () => {
             document.getElementById('connectionStatus').innerText = 'Connected';
             document.getElementById('connectionStatus').className = 'status-badge connected';
             logError('');
-            // Directly subscribe – no need for active_symbols filter
-            subscribe(settings.symbol);
+            subscribe();
         };
 
         ws.onmessage = (ev) => {
             const data = JSON.parse(ev.data);
-
             if (data.error) {
                 logError('Error: ' + data.error.message);
-                // If symbol invalid, try next popular one
                 if (data.error.message && data.error.message.toLowerCase().includes('invalid')) {
                     const fallbacks = ['1HZ100V', 'R_100', '1HZ75V', 'R_75'];
                     const next = fallbacks.find(s => s !== settings.symbol);
@@ -340,99 +506,105 @@ function initWS() {
                         settings.symbol = next;
                         document.getElementById('symbolSelect').value = next;
                         applyForm();
-                        subscribe(next);
+                        subscribe();
                     }
                 }
                 return;
             }
 
-            if (data.msg_type === 'history' && data.history) {
-                const prices = data.history.prices || [];
-                const times = data.history.times || [];
-                prices.forEach((p, i) => {
-                    const pr = parseFloat(p);
-                    pushChart(times[i] * 1000, pr);
-                    cciHistory.push(pr);
-                });
-                if (cciHistory.length > CCI_PERIOD + 10) {
-                    cciHistory = cciHistory.slice(-(CCI_PERIOD + 10));
-                }
-                if (prices.length) {
-                    const last = parseFloat(prices[prices.length - 1]);
-                    document.getElementById('livePrice').innerText = last.toFixed(2);
+            if (data.candles && Array.isArray(data.candles)) {
+                candles = data.candles.map(c => ({
+                    time: c.epoch * 1000,
+                    open: parseFloat(c.open),
+                    high: parseFloat(c.high),
+                    low: parseFloat(c.low),
+                    close: parseFloat(c.close)
+                }));
+                if (candles.length > MAX_CANDLES) candles = candles.slice(-MAX_CANDLES);
+                lastCandleEpoch = candles.length ? candles[candles.length - 1].time : 0;
+                rebuildCCI();
+                redraw();
+                if (candles.length) {
+                    const last = candles[candles.length - 1];
+                    document.getElementById('livePrice').innerText = last.close.toFixed(2);
                     document.getElementById('lastUpdate').innerText =
-                        'Last tick: ' + new Date(times[times.length - 1] * 1000).toLocaleTimeString();
-                    evaluate(last);
+                        'Last candle: ' + new Date(last.time).toLocaleTimeString();
+                    evaluate(last.close);
                 }
                 return;
             }
 
-            if (data.msg_type === 'tick' && data.tick) {
-                const pr = parseFloat(data.tick.quote);
-                const t = data.tick.epoch * 1000;
-                document.getElementById('livePrice').innerText = pr.toFixed(2);
+            if (data.msg_type === 'ohlc' && data.ohlc) {
+                const o = data.ohlc;
+                const epoch = o.epoch * 1000;
+                const candle = {
+                    time: epoch,
+                    open: parseFloat(o.open),
+                    high: parseFloat(o.high),
+                    low: parseFloat(o.low),
+                    close: parseFloat(o.close)
+                };
+
+                if (epoch === lastCandleEpoch && candles.length) {
+                    candles[candles.length - 1] = candle;
+                } else {
+                    candles.push(candle);
+                    lastCandleEpoch = epoch;
+                    if (candles.length > MAX_CANDLES) {
+                        candles.shift();
+                        signalMarkers = signalMarkers
+                            .map(m => ({ ...m, index: m.index - 1 }))
+                            .filter(m => m.index >= 0);
+                    }
+                }
+                rebuildCCI();
+                redraw();
+                document.getElementById('livePrice').innerText = candle.close.toFixed(2);
                 document.getElementById('lastUpdate').innerText =
-                    'Last tick: ' + new Date(t).toLocaleTimeString();
-                pushChart(t, pr);
-                evaluate(pr);
+                    'Last candle: ' + new Date(epoch).toLocaleTimeString();
+                evaluate(candle.close);
             }
         };
 
         ws.onclose = () => {
             document.getElementById('connectionStatus').innerText = 'Disconnected';
             document.getElementById('connectionStatus').className = 'status-badge disconnected';
-            // try next endpoint
             endpointIndex++;
             setTimeout(tryConnect, 1500);
         };
-
         ws.onerror = () => {
             endpointIndex++;
             setTimeout(tryConnect, 1500);
         };
     }
-
     tryConnect();
 }
 
-function subscribe(symbol) {
+function subscribe() {
     if (!ws || ws.readyState !== 1) return;
-    cciHistory = [];
-    resetChart();
-    document.getElementById('signalContainer').innerText = 'Collecting history...';
+    resetCharts();
+    document.getElementById('signalContainer').innerText = 'Collecting candles...';
     document.getElementById('cciValue').innerText = '--';
 
-    // Request history + live stream
     ws.send(JSON.stringify({
-        ticks_history: symbol,
+        ticks_history: settings.symbol,
         adjust_start_time: 1,
-        count: CHART_MAX,
+        count: MAX_CANDLES,
         end: 'latest',
         start: 1,
-        style: 'ticks',
+        style: 'candles',
+        granularity: settings.granularity,
         subscribe: 1
     }));
 }
 
-// ---------- CCI ----------
-function calculateCCI() {
-    if (cciHistory.length < CCI_PERIOD) return null;
-    const slice = cciHistory.slice(-CCI_PERIOD);
-    const sma = slice.reduce((a, b) => a + b, 0) / slice.length;
-    const md = slice.reduce((a, b) => a + Math.abs(b - sma), 0) / slice.length;
-    if (md === 0) return 0;
-    return (slice[slice.length - 1] - sma) / (0.015 * md);
-}
-
 function evaluate(price) {
-    cciHistory.push(price);
-    if (cciHistory.length > CCI_PERIOD + 10) cciHistory.shift();
-
-    const cci = calculateCCI();
+    if (cciValues.length === 0) return;
+    const cci = cciValues[cciValues.length - 1];
     const box = document.getElementById('signalContainer');
 
     if (cci === null) {
-        box.innerText = `Collecting (${cciHistory.length}/${CCI_PERIOD})...`;
+        box.innerText = `Collecting CCI (${candles.length}/${CCI_PERIOD})...`;
         return;
     }
 
@@ -442,22 +614,40 @@ function evaluate(price) {
     if (cci > settings.cciThreshold) {
         sig = 'buy';
         box.className = 'signal-box signal-buy';
-        box.innerText = `BUY — CCI ${cci.toFixed(1)} > +${settings.cciThreshold}`;
-        if (sig !== currentSignal) record('buy', price, cci);
+        const entry = price;
+        const tp = entry + settings.tpOffset;
+        box.innerText = `BUY — CCI ${cci.toFixed(1)}  |  Entry ${entry.toFixed(2)}  →  TP ${tp.toFixed(2)}`;
+        if (sig !== currentSignal) {
+            activeEntry = { price: entry, tp: tp, type: 'buy' };
+            document.getElementById('entryPrice').innerText = entry.toFixed(2);
+            document.getElementById('tpPrice').innerText = tp.toFixed(2);
+            signalMarkers.push({ index: candles.length - 1, type: 'buy' });
+            record('buy', entry, tp, cci);
+            redraw();
+        }
     } else if (cci < -settings.cciThreshold) {
         sig = 'sell';
         box.className = 'signal-box signal-sell';
-        box.innerText = `SELL — CCI ${cci.toFixed(1)} < -${settings.cciThreshold}`;
-        if (sig !== currentSignal) record('sell', price, cci);
+        const entry = price;
+        const tp = entry - settings.tpOffset;
+        box.innerText = `SELL — CCI ${cci.toFixed(1)}  |  Entry ${entry.toFixed(2)}  →  TP ${tp.toFixed(2)}`;
+        if (sig !== currentSignal) {
+            activeEntry = { price: entry, tp: tp, type: 'sell' };
+            document.getElementById('entryPrice').innerText = entry.toFixed(2);
+            document.getElementById('tpPrice').innerText = tp.toFixed(2);
+            signalMarkers.push({ index: candles.length - 1, type: 'sell' });
+            record('sell', entry, tp, cci);
+            redraw();
+        }
     } else {
         sig = 'neutral';
         box.className = 'signal-box signal-neutral';
         box.innerText = `NEUTRAL — CCI ${cci.toFixed(1)}`;
+        // keep last activeEntry visible until new signal
     }
     currentSignal = sig;
 }
 
-// ---------- alerts & history ----------
 function playBeep(dir) {
     if (!settings.sound) return;
     try {
@@ -473,26 +663,28 @@ function playBeep(dir) {
     } catch(e) {}
 }
 
-function notify(dir, price, cci) {
+function notify(dir, entry, tp, cci) {
     if (!settings.notify || !('Notification' in window) || Notification.permission !== 'granted') return;
     new Notification((dir === 'buy' ? '🟢 BUY' : '🔴 SELL') + ' CCI(20) — ' + settings.symbol, {
-        body: `Price: ${price.toFixed(2)} | CCI: ${cci.toFixed(1)}`
+        body: `Entry: ${entry.toFixed(2)} | TP: ${tp.toFixed(2)} | CCI: ${cci.toFixed(1)}`
     });
 }
 
-function record(dir, price, cci) {
+function record(dir, entry, tp, cci) {
     tradeHistory.unshift({
         time: new Date().toLocaleTimeString(),
         symbol: settings.symbol,
+        tf: tfLabel(settings.granularity),
         direction: dir,
-        price: price.toFixed(2),
+        entry: entry.toFixed(2),
+        tp: tp.toFixed(2),
         cci: cci.toFixed(1)
     });
     if (tradeHistory.length > 30) tradeHistory.pop();
     saveHistory();
     renderHistory();
     playBeep(dir);
-    notify(dir, price, cci);
+    notify(dir, entry, tp, cci);
 }
 
 function renderHistory() {
@@ -509,14 +701,15 @@ function renderHistory() {
         tr.innerHTML = `
             <td>${i.time}</td>
             <td>${i.symbol}</td>
+            <td>${i.tf}</td>
             <td class="dir-${i.direction}">${i.direction.toUpperCase()}</td>
-            <td>${i.price}</td>
+            <td>${i.entry}</td>
+            <td>${i.tp}</td>
             <td>${i.cci}</td>`;
         body.appendChild(tr);
     });
 }
 
-// ---------- UI ----------
 document.getElementById('applyBtn').onclick = () => {
     if (!readForm()) return;
     saveSettings();
