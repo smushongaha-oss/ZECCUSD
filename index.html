@@ -3,382 +3,152 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CCI Nexus 2050 — Live Candles</title>
+<title>CCI Nexus 2050</title>
 <style>
-  :root {
-    --bg: #070b14;
-    --panel: rgba(16, 24, 40, 0.72);
-    --border: rgba(0, 229, 255, 0.12);
-    --cyan: #00e5ff;
-    --green: #00e676;
-    --red: #ff1744;
-    --amber: #ffca28;
-    --text: #e8f4ff;
-    --muted: #7a8ba3;
-    --glow: 0 0 24px rgba(0, 229, 255, 0.25);
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background:
-      radial-gradient(ellipse at 20% 0%, rgba(0,80,120,0.25) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 100%, rgba(80,0,120,0.15) 0%, transparent 45%),
-      var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    padding: 20px;
-    display: flex;
-    justify-content: center;
-  }
-  .shell {
-    width: 100%;
-    max-width: 780px;
-  }
-  .panel {
-    background: var(--panel);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 22px;
-    box-shadow: 0 8px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.04);
-  }
-  .top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 18px;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  .brand {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .brand h1 {
-    font-size: 1.15em;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    background: linear-gradient(90deg, #00e5ff, #82b1ff);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  .brand span { font-size: 0.72em; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; }
-  .badge {
-    padding: 5px 14px;
-    border-radius: 999px;
-    font-size: 0.75em;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-  .badge.on { background: rgba(0,230,118,0.15); color: var(--green); border: 1px solid rgba(0,230,118,0.35); box-shadow: 0 0 12px rgba(0,230,118,0.2); }
-  .badge.off { background: rgba(255,23,68,0.12); color: var(--red); border: 1px solid rgba(255,23,68,0.3); }
-
-  .controls {
-    display: grid;
-    grid-template-columns: 1.4fr 1fr;
-    gap: 12px;
-    margin-bottom: 14px;
-  }
-  @media (max-width: 560px) { .controls { grid-template-columns: 1fr; } }
-  label { display: block; font-size: 0.7em; color: var(--muted); margin-bottom: 5px; letter-spacing: 0.06em; text-transform: uppercase; }
-  select, input[type=number] {
-    width: 100%;
-    background: rgba(8,14,24,0.8);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px 12px;
-    font-size: 0.92em;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  select:focus, input:focus { border-color: var(--cyan); box-shadow: 0 0 0 2px rgba(0,229,255,0.12); }
-
-  details.settings {
-    background: rgba(8,14,24,0.5);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    margin-bottom: 14px;
-  }
-  details.settings summary {
-    padding: 12px 16px;
-    cursor: pointer;
-    color: var(--cyan);
-    font-weight: 600;
-    font-size: 0.88em;
-    letter-spacing: 0.04em;
-    list-style: none;
-  }
-  details.settings summary::-webkit-details-marker { display: none; }
-  .sbody {
-    padding: 0 16px 16px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-  .sbody .full { grid-column: 1 / -1; }
-  .tog {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: rgba(0,0,0,0.25);
-    padding: 10px 14px;
-    border-radius: 10px;
-    font-size: 0.88em;
-  }
-  .btn {
-    grid-column: 1 / -1;
-    background: linear-gradient(135deg, #0088cc, #00bcd4);
-    color: #001018;
-    border: none;
-    border-radius: 10px;
-    padding: 12px;
-    font-weight: 700;
-    font-size: 0.95em;
-    cursor: pointer;
-    letter-spacing: 0.04em;
-    box-shadow: var(--glow);
-    transition: transform 0.15s, filter 0.15s;
-  }
-  .btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
-  .btn-ghost {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--muted);
-    padding: 4px 12px;
-    border-radius: 8px;
-    font-size: 0.75em;
-    cursor: pointer;
-  }
-  .btn-ghost:hover { border-color: var(--red); color: var(--red); }
-
-  .chart-wrap {
-    position: relative;
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    background: #0a101c;
-    margin-bottom: 10px;
-  }
-  .chart-wrap.price { height: 300px; }
-  .chart-wrap.cci { height: 140px; }
-  .chart-wrap canvas { display: block; width: 100%; height: 100%; }
-  .chart-label {
-    position: absolute;
-    top: 8px;
-    left: 12px;
-    font-size: 0.68em;
-    color: var(--muted);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    pointer-events: none;
-  }
-  .chart-empty {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--muted);
-    font-size: 0.85em;
-  }
-
-  .price-hero {
-    text-align: center;
-    padding: 18px;
-    background: rgba(0,229,255,0.04);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    margin-bottom: 12px;
-  }
-  .price-hero .tag { font-size: 0.7em; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
-  .price-hero .val {
-    font-size: 2.4em;
-    font-weight: 700;
-    color: var(--cyan);
-    margin: 6px 0;
-    text-shadow: 0 0 30px rgba(0,229,255,0.35);
-    font-variant-numeric: tabular-nums;
-  }
-  .price-hero .sub { font-size: 0.8em; color: var(--muted); }
-
-  .signal {
-    padding: 16px;
-    border-radius: 12px;
-    text-align: center;
-    font-weight: 700;
-    font-size: 1.05em;
-    margin-bottom: 12px;
-    letter-spacing: 0.03em;
-    transition: all 0.3s;
-  }
-  .signal.n { background: rgba(40,50,70,0.6); color: var(--muted); border: 1px solid var(--border); }
-  .signal.b {
-    background: rgba(0,80,40,0.35);
-    color: var(--green);
-    border: 1px solid rgba(0,230,118,0.45);
-    box-shadow: 0 0 28px rgba(0,230,118,0.15);
-  }
-  .signal.s {
-    background: rgba(80,10,20,0.35);
-    color: #ff8a80;
-    border: 1px solid rgba(255,23,68,0.4);
-    box-shadow: 0 0 28px rgba(255,23,68,0.12);
-  }
-
-  .metrics {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-bottom: 18px;
-  }
-  @media (max-width: 520px) { .metrics { grid-template-columns: 1fr 1fr; } }
-  .metric {
-    background: rgba(8,14,24,0.6);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px 8px;
-    text-align: center;
-  }
-  .metric .l { font-size: 0.65em; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
-  .metric .v { font-weight: 700; font-size: 1.05em; font-variant-numeric: tabular-nums; }
-
-  .hist-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-  }
-  .hist-head h3 { font-size: 0.9em; color: var(--cyan); letter-spacing: 0.06em; }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.8em;
-  }
-  th, td {
-    padding: 7px 6px;
-    text-align: center;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-  }
-  th { color: var(--muted); font-weight: 500; font-size: 0.72em; letter-spacing: 0.06em; text-transform: uppercase; }
-  .buy { color: var(--green); font-weight: 700; }
-  .sell { color: #ff8a80; font-weight: 700; }
-  .empty { text-align: center; color: var(--muted); padding: 14px; font-size: 0.85em; }
-
-  #log { margin-top: 12px; font-size: 0.78em; color: #ff8a80; text-align: center; min-height: 1.2em; }
-  .foot { margin-top: 14px; font-size: 0.68em; color: var(--muted); text-align: center; line-height: 1.5; }
-  .locked { opacity: 0.55; cursor: not-allowed; }
+:root{--bg:#070b14;--panel:rgba(16,24,40,.78);--border:rgba(0,229,255,.14);--cyan:#00e5ff;--green:#00e676;--red:#ff5252;--text:#e8f4ff;--muted:#7a8ba3}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:radial-gradient(ellipse at 15% 0%,rgba(0,90,140,.28),transparent 50%),radial-gradient(ellipse at 85% 100%,rgba(60,0,100,.18),transparent 45%),var(--bg);color:var(--text);min-height:100vh;padding:18px;display:flex;justify-content:center}
+.shell{width:100%;max-width:800px}
+.panel{background:var(--panel);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:18px;padding:22px;box-shadow:0 12px 48px rgba(0,0,0,.5)}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.brand h1{font-size:1.2em;font-weight:700;letter-spacing:.05em;background:linear-gradient(90deg,#00e5ff,#82b1ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.brand span{font-size:.7em;color:var(--muted);letter-spacing:.14em;text-transform:uppercase}
+.badge{padding:5px 14px;border-radius:999px;font-size:.72em;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.badge.on{background:rgba(0,230,118,.15);color:var(--green);border:1px solid rgba(0,230,118,.4)}
+.badge.off{background:rgba(255,82,82,.12);color:var(--red);border:1px solid rgba(255,82,82,.35)}
+.controls{display:grid;grid-template-columns:1.4fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:560px){.controls{grid-template-columns:1fr}}
+label{display:block;font-size:.68em;color:var(--muted);margin-bottom:5px;letter-spacing:.08em;text-transform:uppercase}
+select,input[type=number]{width:100%;background:rgba(6,12,22,.85);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:.92em;outline:none}
+select:focus,input:focus{border-color:var(--cyan)}
+details.settings{background:rgba(6,12,22,.45);border:1px solid var(--border);border-radius:12px;margin-bottom:12px}
+details.settings summary{padding:12px 16px;cursor:pointer;color:var(--cyan);font-weight:600;font-size:.88em;list-style:none}
+details.settings summary::-webkit-details-marker{display:none}
+.sbody{padding:0 16px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sbody .full{grid-column:1/-1}
+.tog{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,.28);padding:10px 14px;border-radius:10px;font-size:.88em}
+.btn{grid-column:1/-1;background:linear-gradient(135deg,#0088cc,#00bcd4);color:#001018;border:none;border-radius:10px;padding:12px;font-weight:700;cursor:pointer}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:8px;font-size:.75em;cursor:pointer}
+.chart-wrap{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:#080e18;margin-bottom:10px}
+.chart-wrap.price{height:320px}
+.chart-wrap.cci{height:150px}
+.chart-wrap canvas{display:block;width:100%;height:100%}
+.chart-label{position:absolute;top:8px;left:12px;font-size:.65em;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;z-index:2}
+.chart-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.85em}
+.price-hero{text-align:center;padding:16px;background:rgba(0,229,255,.04);border:1px solid var(--border);border-radius:12px;margin-bottom:12px}
+.price-hero .tag{font-size:.68em;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.price-hero .val{font-size:2.35em;font-weight:700;color:var(--cyan);margin:4px 0;text-shadow:0 0 28px rgba(0,229,255,.35)}
+.price-hero .sub{font-size:.78em;color:var(--muted)}
+.signal{padding:15px;border-radius:12px;text-align:center;font-weight:700;font-size:1.02em;margin-bottom:12px}
+.signal.n{background:rgba(40,50,70,.55);color:var(--muted);border:1px solid var(--border)}
+.signal.b{background:rgba(0,80,40,.35);color:var(--green);border:1px solid rgba(0,230,118,.45)}
+.signal.s{background:rgba(80,10,20,.35);color:#ff8a80;border:1px solid rgba(255,82,82,.4)}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+@media(max-width:520px){.metrics{grid-template-columns:1fr 1fr}}
+.metric{background:rgba(6,12,22,.6);border:1px solid var(--border);border-radius:12px;padding:12px 8px;text-align:center}
+.metric .l{font-size:.62em;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+.metric .v{font-weight:700;font-size:1.05em}
+.hist-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.hist-head h3{font-size:.88em;color:var(--cyan)}
+table{width:100%;border-collapse:collapse;font-size:.8em}
+th,td{padding:7px 5px;text-align:center;border-bottom:1px solid rgba(255,255,255,.04)}
+th{color:var(--muted);font-weight:500;font-size:.7em;text-transform:uppercase}
+.buy{color:var(--green);font-weight:700}.sell{color:#ff8a80;font-weight:700}
+.empty{text-align:center;color:var(--muted);padding:14px;font-size:.85em}
+#log{margin-top:10px;font-size:.78em;color:#ff8a80;text-align:center;min-height:1.2em}
+.foot{margin-top:12px;font-size:.66em;color:var(--muted);text-align:center}
+.locked{opacity:.5;cursor:not-allowed}
 </style>
 </head>
 <body>
-<div class="shell">
-  <div class="panel">
-    <div class="top">
-      <div class="brand">
-        <h1 id="title">CCI NEXUS 2050</h1>
-        <span>Live Candles · Entry / TP</span>
-      </div>
-      <span id="status" class="badge off">Offline</span>
-    </div>
-
-    <div class="controls">
-      <div>
-        <label>Instrument</label>
-        <select id="sym">
-          <option value="frxXAUUSD" selected>XAUUSD — Gold</option>
-          <option value="cryBTCUSD">BTC/USD</option>
-          <option value="frxEURUSD">EUR/USD</option>
-          <option value="frxGBPUSD">GBP/USD</option>
-          <option value="1HZ100V">Volatility 100 (1s)</option>
-          <option value="1HZ75V">Volatility 75 (1s)</option>
-          <option value="R_100">Volatility 100</option>
-          <option value="R_75">Volatility 75</option>
-        </select>
-      </div>
-      <div>
-        <label>Timeframe</label>
-        <select id="tf">
-          <option value="60">1 Minute</option>
-          <option value="120">2 Minutes</option>
-          <option value="300" selected>5 Minutes</option>
-          <option value="900">15 Minutes</option>
-        </select>
-      </div>
-    </div>
-
-    <details class="settings">
-      <summary>◈ Parameters & Alerts</summary>
-      <div class="sbody">
-        <div>
-          <label>CCI Period</label>
-          <input type="number" value="20" class="locked" readonly>
-        </div>
-        <div>
-          <label>Threshold ±Y</label>
-          <input type="number" id="th" value="100" min="50" max="300">
-        </div>
-        <div>
-          <label>TP Offset</label>
-          <input type="number" id="tp" value="150" min="1" step="1">
-        </div>
-        <div></div>
-        <div class="full tog"><span>Sound alerts</span><input type="checkbox" id="snd" checked></div>
-        <div class="full tog"><span>Browser notifications</span><input type="checkbox" id="ntf" checked></div>
-        <button class="btn" id="go">Engage Feed</button>
-      </div>
-    </details>
-
-    <div class="chart-wrap price">
-      <div class="chart-label">Price · OHLC</div>
-      <canvas id="pc"></canvas>
-      <div class="chart-empty" id="pe">Awaiting candle stream…</div>
-    </div>
-    <div class="chart-wrap cci">
-      <div class="chart-label">CCI (20)</div>
-      <canvas id="cc"></canvas>
-      <div class="chart-empty" id="ce">Indicator standby…</div>
-    </div>
-
-    <div class="price-hero">
-      <div class="tag" id="plabel">Last Close</div>
-      <div class="val" id="price">—</div>
-      <div class="sub" id="upd">Connecting to public feed…</div>
-    </div>
-
-    <div id="sig" class="signal n">Initializing nexus…</div>
-
-    <div class="metrics">
-      <div class="metric"><div class="l">CCI</div><div class="v" id="cci">—</div></div>
-      <div class="metric"><div class="l">Entry</div><div class="v" id="ent">—</div></div>
-      <div class="metric"><div class="l">Take Profit</div><div class="v" id="tpp" style="color:var(--green)">—</div></div>
-      <div class="metric"><div class="l">TF / ±Y</div><div class="v" id="meta">5m / ±100</div></div>
-    </div>
-
-    <div class="hist-head">
-      <h3>Signal Log</h3>
-      <button class="btn-ghost" id="clr">Clear</button>
-    </div>
-    <table>
-      <thead><tr><th>Time</th><th>Sym</th><th>TF</th><th>Side</th><th>Entry</th><th>TP</th><th>CCI</th></tr></thead>
-      <tbody id="hist"></tbody>
-    </table>
-    <div class="empty" id="emptyH">No signals recorded</div>
-
-    <div id="log"></div>
-    <div class="foot">Public WebSocket · api.derivws.com · CCI(20) Candles · Experimental — not financial advice</div>
+<div class="shell"><div class="panel">
+  <div class="top">
+    <div class="brand"><h1 id="title">CCI NEXUS 2050</h1><span>Live Candles · Entry / TP</span></div>
+    <span id="status" class="badge off">Offline</span>
   </div>
-</div>
+
+  <div class="controls">
+    <div>
+      <label>Instrument</label>
+      <select id="sym">
+        <option value="frxXAUUSD" selected>XAUUSD — Gold</option>
+        <option value="cryBTCUSD">BTC/USD</option>
+        <option value="frxEURUSD">EUR/USD</option>
+        <option value="frxGBPUSD">GBP/USD</option>
+        <option value="1HZ100V">Volatility 100 (1s)</option>
+        <option value="1HZ75V">Volatility 75 (1s)</option>
+        <option value="R_100">Volatility 100</option>
+        <option value="R_75">Volatility 75</option>
+      </select>
+    </div>
+    <div>
+      <label>Timeframe</label>
+      <select id="tf">
+        <option value="60">1 Minute</option>
+        <option value="120">2 Minutes</option>
+        <option value="300" selected>5 Minutes</option>
+        <option value="900">15 Minutes</option>
+      </select>
+    </div>
+  </div>
+
+  <details class="settings">
+    <summary>◈ Parameters & Alerts</summary>
+    <div class="sbody">
+      <div><label>CCI Period</label><input type="number" value="20" class="locked" readonly></div>
+      <div><label>Threshold ±Y</label><input type="number" id="th" value="100" min="50"></div>
+      <div><label>TP Offset</label><input type="number" id="tp" value="50" min="1" step="1"></div>
+      <div></div>
+      <div class="full tog"><span>Sound</span><input type="checkbox" id="snd" checked></div>
+      <div class="full tog"><span>Notifications</span><input type="checkbox" id="ntf" checked></div>
+      <button class="btn" id="go">Engage Feed</button>
+    </div>
+  </details>
+
+  <div class="chart-wrap price">
+    <div class="chart-label">Price · OHLC</div>
+    <canvas id="pc"></canvas>
+    <div class="chart-empty" id="pe">Awaiting candles…</div>
+  </div>
+  <div class="chart-wrap cci">
+    <div class="chart-label">CCI (20)</div>
+    <canvas id="cc"></canvas>
+    <div class="chart-empty" id="ce">Standby…</div>
+  </div>
+
+  <div class="price-hero">
+    <div class="tag" id="plabel">Last Close</div>
+    <div class="val" id="price">—</div>
+    <div class="sub" id="upd">Connecting…</div>
+  </div>
+
+  <div id="sig" class="signal n">Initializing…</div>
+
+  <div class="metrics">
+    <div class="metric"><div class="l">CCI</div><div class="v" id="cci">—</div></div>
+    <div class="metric"><div class="l">Entry</div><div class="v" id="ent">—</div></div>
+    <div class="metric"><div class="l">Take Profit</div><div class="v" id="tpp" style="color:var(--green)">—</div></div>
+    <div class="metric"><div class="l">TF / ±Y</div><div class="v" id="meta">5m / ±100</div></div>
+  </div>
+
+  <div class="hist-head">
+    <h3>Signal Log</h3>
+    <button class="btn-ghost" id="clr">Clear</button>
+  </div>
+  <table>
+    <thead><tr><th>Time</th><th>Sym</th><th>TF</th><th>Side</th><th>Entry</th><th>TP</th><th>CCI</th></tr></thead>
+    <tbody id="hist"></tbody>
+  </table>
+  <div class="empty" id="emptyH">No signals yet</div>
+  <div id="log"></div>
+  <div class="foot">Public WebSocket · api.derivws.com · CCI(20) · Not financial advice</div>
+</div></div>
 
 <script>
 const WS_URL = 'wss://api.derivws.com/trading/v1/options/ws/public';
-const PERIOD = 20;
-const MAX_C = 90;
-const PING = 25000;
+const PERIOD = 20, MAX_C = 80, PING = 25000, MAX_MARKS = 12;
 
-let S = { symbol: 'frxXAUUSD', gran: 300, th: 100, tp: 150, snd: true, ntf: true };
+let S = { symbol: 'frxXAUUSD', gran: 300, th: 100, tp: 50, snd: true, ntf: true };
 let candles = [], cciA = [], marks = [], entry = null;
 let ws = null, pingT = null, curSig = null, hist = [], actx = null, lastEpoch = 0;
 
@@ -387,11 +157,11 @@ const log = m => { $('log').textContent = m || ''; };
 const tfL = g => ({ 60: '1m', 120: '2m', 300: '5m', 900: '15m' })[g] || g + 's';
 
 function load() {
-  try { Object.assign(S, JSON.parse(localStorage.getItem('cci_nexus_v1') || '{}')); } catch (e) {}
-  try { hist = JSON.parse(localStorage.getItem('cci_nexus_h1') || '[]'); } catch (e) {}
+  try { Object.assign(S, JSON.parse(localStorage.getItem('cci_n3') || '{}')); } catch (e) {}
+  try { hist = JSON.parse(localStorage.getItem('cci_n3h') || '[]'); } catch (e) {}
 }
-function save() { localStorage.setItem('cci_nexus_v1', JSON.stringify(S)); }
-function saveH() { localStorage.setItem('cci_nexus_h1', JSON.stringify(hist)); }
+function save() { localStorage.setItem('cci_n3', JSON.stringify(S)); }
+function saveH() { localStorage.setItem('cci_n3h', JSON.stringify(hist)); }
 
 function apply() {
   $('sym').value = S.symbol;
@@ -407,103 +177,123 @@ function apply() {
 
 function read() {
   const th = +$('th').value, tp = +$('tp').value;
-  if (!(th >= 50)) { log('Threshold must be ≥ 50'); return false; }
-  if (!(tp > 0)) { log('TP offset must be positive'); return false; }
+  if (!(th >= 50)) { log('Threshold ≥ 50'); return false; }
+  if (!(tp > 0)) { log('TP must be > 0'); return false; }
   S.symbol = $('sym').value;
   S.gran = +$('tf').value;
   S.th = th; S.tp = tp;
-  S.snd = $('snd').checked; S.ntf = $('ntf').checked;
-  log(''); return true;
+  S.snd = $('snd').checked;
+  S.ntf = $('ntf').checked;
+  log('');
+  return true;
 }
 
 function reset() {
   candles = []; cciA = []; marks = []; entry = null; lastEpoch = 0;
-  $('ent').textContent = '—'; $('tpp').textContent = '—'; $('cci').textContent = '—';
-  $('pe').style.display = 'flex'; $('ce').style.display = 'flex';
+  $('ent').textContent = '—';
+  $('tpp').textContent = '—';
+  $('cci').textContent = '—';
+  $('pe').style.display = 'flex';
+  $('ce').style.display = 'flex';
   const a = $('pc'), b = $('cc');
   if (a) a.getContext('2d').clearRect(0, 0, a.width, a.height);
   if (b) b.getContext('2d').clearRect(0, 0, b.width, b.height);
 }
 
-/* ─── Charts ─── */
 function drawPrice() {
   const canvas = $('pc');
   if (!canvas || candles.length < 2) return;
   $('pe').style.display = 'none';
   const dpr = devicePixelRatio || 1;
   const rect = canvas.parentElement.getBoundingClientRect();
-  canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const W = rect.width, H = rect.height;
   ctx.clearRect(0, 0, W, H);
 
-  const padT = 16, padB = 14, padL = 8, padR = 8;
+  const padT = 18, padB = 16, padL = 6, padR = 6;
   const ch = H - padT - padB, cw = W - padL - padR;
+
+  // Scale from candles ONLY
   let mn = Infinity, mx = -Infinity;
   candles.forEach(c => { mn = Math.min(mn, c.l); mx = Math.max(mx, c.h); });
-  if (entry) { mn = Math.min(mn, entry.p, entry.t); mx = Math.max(mx, entry.p, entry.t); }
   if (mn === mx) { mn -= 1; mx += 1; }
-  const rng = mx - mn; mn -= rng * 0.06; mx += rng * 0.06;
-  const n = candles.length, gap = cw / n, bw = Math.max(2.5, gap * 0.62);
+  const rng = mx - mn;
+  mn -= rng * 0.08; mx += rng * 0.08;
+
+  const n = candles.length, gap = cw / n, bw = Math.max(3, gap * 0.68);
   const Y = v => padT + ch - ((v - mn) / (mx - mn)) * ch;
 
-  // grid
-  ctx.strokeStyle = 'rgba(0,229,255,0.04)';
+  ctx.strokeStyle = 'rgba(0,229,255,0.05)';
   ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i++) {
     const y = padT + (ch / 4) * i;
     ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
   }
 
-  // candles
   candles.forEach((c, i) => {
     const x = padL + i * gap + gap / 2;
     const up = c.c >= c.o;
     const col = up ? '#00e676' : '#ff5252';
-    ctx.strokeStyle = col; ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.moveTo(x, Y(c.h)); ctx.lineTo(x, Y(c.l)); ctx.stroke();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = Math.max(1.2, bw * 0.18);
+    ctx.beginPath();
+    ctx.moveTo(x, Y(c.h));
+    ctx.lineTo(x, Y(c.l));
+    ctx.stroke();
     const yo = Y(c.o), yc = Y(c.c);
+    const top = Math.min(yo, yc);
+    const bh = Math.max(2, Math.abs(yo - yc));
     ctx.fillStyle = col;
-    ctx.globalAlpha = 0.9;
-    ctx.fillRect(x - bw / 2, Math.min(yo, yc), bw, Math.max(1.5, Math.abs(yo - yc)));
-    ctx.globalAlpha = 1;
+    ctx.fillRect(x - bw / 2, top, bw, bh);
   });
 
-  // Entry / TP
+  // Entry / TP only if inside visible range
   if (entry) {
-    ctx.setLineDash([5, 4]); ctx.lineWidth = 1.3;
-    ctx.strokeStyle = '#42a5f5';
-    ctx.beginPath(); ctx.moveTo(padL, Y(entry.p)); ctx.lineTo(W - padR, Y(entry.p)); ctx.stroke();
-    ctx.strokeStyle = '#69f0ae';
-    ctx.beginPath(); ctx.moveTo(padL, Y(entry.t)); ctx.lineTo(W - padR, Y(entry.t)); ctx.stroke();
+    ctx.setLineDash([5, 4]);
+    ctx.lineWidth = 1.4;
+    if (entry.p >= mn && entry.p <= mx) {
+      ctx.strokeStyle = '#42a5f5';
+      ctx.beginPath(); ctx.moveTo(padL, Y(entry.p)); ctx.lineTo(W - padR, Y(entry.p)); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = '600 10px system-ui'; ctx.textAlign = 'right';
+      ctx.fillStyle = '#42a5f5';
+      ctx.fillText('ENTRY ' + entry.p.toFixed(2), W - padR - 4, Y(entry.p) - 4);
+      ctx.setLineDash([5, 4]);
+    }
+    if (entry.t >= mn && entry.t <= mx) {
+      ctx.strokeStyle = '#69f0ae';
+      ctx.beginPath(); ctx.moveTo(padL, Y(entry.t)); ctx.lineTo(W - padR, Y(entry.t)); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = '600 10px system-ui'; ctx.textAlign = 'right';
+      ctx.fillStyle = '#69f0ae';
+      ctx.fillText('TP ' + entry.t.toFixed(2), W - padR - 4, Y(entry.t) - 4);
+    }
     ctx.setLineDash([]);
-    ctx.font = '600 10px system-ui'; ctx.textAlign = 'right';
-    ctx.fillStyle = '#42a5f5'; ctx.fillText('ENTRY ' + entry.p.toFixed(2), W - padR - 4, Y(entry.p) - 4);
-    ctx.fillStyle = '#69f0ae'; ctx.fillText('TP ' + entry.t.toFixed(2), W - padR - 4, Y(entry.t) - 4);
   }
 
-  // markers
   marks.forEach(m => {
     if (m.i < 0 || m.i >= n) return;
     const c = candles[m.i], x = padL + m.i * gap + gap / 2;
-    ctx.font = 'bold 13px system-ui'; ctx.textAlign = 'center';
+    ctx.font = 'bold 14px system-ui'; ctx.textAlign = 'center';
     if (m.t === 'buy') {
       ctx.fillStyle = '#00e676';
       ctx.shadowColor = 'rgba(0,230,118,0.5)'; ctx.shadowBlur = 8;
-      ctx.fillText('▲', x, Y(c.l) + 15);
+      ctx.fillText('▲', x, Y(c.l) + 16);
     } else {
       ctx.fillStyle = '#ff5252';
       ctx.shadowColor = 'rgba(255,82,82,0.5)'; ctx.shadowBlur = 8;
-      ctx.fillText('▼', x, Y(c.h) - 5);
+      ctx.fillText('▼', x, Y(c.h) - 6);
     }
     ctx.shadowBlur = 0;
   });
 
-  ctx.fillStyle = 'rgba(122,139,163,0.7)';
+  ctx.fillStyle = 'rgba(122,139,163,0.75)';
   ctx.font = '10px system-ui'; ctx.textAlign = 'left';
-  ctx.fillText(mx.toFixed(2), padL + 2, padT + 10);
-  ctx.fillText(mn.toFixed(2), padL + 2, H - 4);
+  ctx.fillText(mx.toFixed(2), padL + 2, padT + 11);
+  ctx.fillText(mn.toFixed(2), padL + 2, H - 5);
 }
 
 function drawCCI() {
@@ -512,13 +302,14 @@ function drawCCI() {
   $('ce').style.display = 'none';
   const dpr = devicePixelRatio || 1;
   const rect = canvas.parentElement.getBoundingClientRect();
-  canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const W = rect.width, H = rect.height;
   ctx.clearRect(0, 0, W, H);
 
-  const padT = 12, padB = 10, padL = 8, padR = 8;
+  const padT = 14, padB = 12, padL = 6, padR = 6;
   const ch = H - padT - padB, cw = W - padL - padR;
   const Yv = S.th;
   let mn = -Yv * 1.5, mx = Yv * 1.5;
@@ -527,11 +318,10 @@ function drawCCI() {
   const n = cciA.length, gap = cw / Math.max(n - 1, 1);
   const Y = v => padT + ch - ((v - mn) / (mx - mn)) * ch;
 
-  // bands
-  ctx.fillStyle = 'rgba(255,82,82,0.06)';
-  ctx.fillRect(padL, padT, cw, Y(Yv) - padT);
-  ctx.fillStyle = 'rgba(0,230,118,0.06)';
-  ctx.fillRect(padL, Y(-Yv), cw, H - padB - Y(-Yv));
+  ctx.fillStyle = 'rgba(255,82,82,0.07)';
+  ctx.fillRect(padL, padT, cw, Math.max(0, Y(Yv) - padT));
+  ctx.fillStyle = 'rgba(0,230,118,0.07)';
+  ctx.fillRect(padL, Y(-Yv), cw, Math.max(0, H - padB - Y(-Yv)));
 
   ctx.setLineDash([4, 3]);
   ctx.strokeStyle = 'rgba(122,139,163,0.35)';
@@ -542,23 +332,21 @@ function drawCCI() {
   ctx.beginPath(); ctx.moveTo(padL, Y(-Yv)); ctx.lineTo(W - padR, Y(-Yv)); ctx.stroke();
   ctx.setLineDash([]);
 
-  // CCI line + glow
   ctx.strokeStyle = '#ffca28';
-  ctx.lineWidth = 1.8;
+  ctx.lineWidth = 2;
   ctx.shadowColor = 'rgba(255,202,40,0.4)';
   ctx.shadowBlur = 6;
   ctx.beginPath();
-  let started = false;
+  let st = false;
   cciA.forEach((v, i) => {
     if (v == null) return;
     const x = padL + i * gap, y = Y(v);
-    if (!started) { ctx.moveTo(x, y); started = true; }
-    else ctx.lineTo(x, y);
+    if (!st) { ctx.moveTo(x, y); st = true; } else ctx.lineTo(x, y);
   });
   ctx.stroke();
   ctx.shadowBlur = 0;
 
-  ctx.fillStyle = 'rgba(122,139,163,0.8)';
+  ctx.fillStyle = 'rgba(122,139,163,0.85)';
   ctx.font = '9px system-ui'; ctx.textAlign = 'left';
   ctx.fillText('+' + Yv, padL + 2, Y(Yv) - 3);
   ctx.fillText('-' + Yv, padL + 2, Y(-Yv) + 10);
@@ -577,7 +365,6 @@ function cciAt(i) {
 }
 function rebuild() { cciA = candles.map((_, i) => cciAt(i)); }
 
-/* ─── WebSocket (same public endpoint as your reference) ─── */
 function clearPing() { if (pingT) { clearInterval(pingT); pingT = null; } }
 
 function connect() {
@@ -586,7 +373,7 @@ function connect() {
   curSig = null; entry = null;
   reset();
   $('sig').className = 'signal n';
-  $('sig').textContent = 'Linking to public nexus…';
+  $('sig').textContent = 'Linking…';
   $('price').textContent = '—';
   $('cci').textContent = '—';
 
@@ -608,7 +395,6 @@ function connect() {
     if (d.error) { log('API: ' + (d.error.message || 'error')); return; }
     if (d.msg_type === 'ping') return;
 
-    // Candle history
     if (d.candles && Array.isArray(d.candles)) {
       candles = d.candles.map(c => ({
         t: c.epoch * 1000,
@@ -626,13 +412,6 @@ function connect() {
       return;
     }
 
-    // Also accept history-style if returned that way
-    if (d.msg_type === 'history' && d.history && d.history.prices) {
-      // fallback ticks → treat as close-only pseudo candles (rare on this endpoint)
-      return;
-    }
-
-    // Live OHLC update
     if (d.msg_type === 'ohlc' && d.ohlc) {
       const o = d.ohlc;
       const ep = o.epoch * 1000;
@@ -661,7 +440,7 @@ function connect() {
     log('Reconnecting in 3s…');
     setTimeout(connect, 3000);
   };
-  ws.onerror = () => log('Socket error — retrying…');
+  ws.onerror = () => log('Socket error…');
 }
 
 function subscribe() {
@@ -680,7 +459,6 @@ function subscribe() {
   }));
 }
 
-/* ─── CCI logic + Entry/TP ─── */
 function evaluate(price) {
   if (!cciA.length) return;
   const cci = cciA.at(-1);
@@ -696,12 +474,13 @@ function evaluate(price) {
     ns = 'buy';
     box.className = 'signal b';
     const e = price, t = e + S.tp;
-    box.textContent = `▲ BUY  ·  CCI ${cci.toFixed(1)}  ·  Entry ${e.toFixed(2)} → TP ${t.toFixed(2)}`;
+    box.textContent = `▲ BUY · CCI ${cci.toFixed(1)} · Entry ${e.toFixed(2)} → TP ${t.toFixed(2)}`;
     if (ns !== curSig) {
       entry = { p: e, t };
       $('ent').textContent = e.toFixed(2);
       $('tpp').textContent = t.toFixed(2);
       marks.push({ i: candles.length - 1, t: 'buy' });
+      if (marks.length > MAX_MARKS) marks.shift();
       rec('buy', e, t, cci);
       redraw();
     }
@@ -709,19 +488,20 @@ function evaluate(price) {
     ns = 'sell';
     box.className = 'signal s';
     const e = price, t = e - S.tp;
-    box.textContent = `▼ SELL  ·  CCI ${cci.toFixed(1)}  ·  Entry ${e.toFixed(2)} → TP ${t.toFixed(2)}`;
+    box.textContent = `▼ SELL · CCI ${cci.toFixed(1)} · Entry ${e.toFixed(2)} → TP ${t.toFixed(2)}`;
     if (ns !== curSig) {
       entry = { p: e, t };
       $('ent').textContent = e.toFixed(2);
       $('tpp').textContent = t.toFixed(2);
       marks.push({ i: candles.length - 1, t: 'sell' });
+      if (marks.length > MAX_MARKS) marks.shift();
       rec('sell', e, t, cci);
       redraw();
     }
   } else {
     ns = 'neutral';
     box.className = 'signal n';
-    box.textContent = `NEUTRAL  ·  CCI ${cci.toFixed(1)}`;
+    box.textContent = `NEUTRAL · CCI ${cci.toFixed(1)}`;
   }
   curSig = ns;
 }
@@ -752,12 +532,8 @@ function notify(d, e, t, c) {
 function rec(d, e, t, c) {
   hist.unshift({
     time: new Date().toLocaleTimeString(),
-    sym: S.symbol,
-    tf: tfL(S.gran),
-    dir: d,
-    e: e.toFixed(2),
-    t: t.toFixed(2),
-    c: c.toFixed(1)
+    sym: S.symbol, tf: tfL(S.gran), dir: d,
+    e: e.toFixed(2), t: t.toFixed(2), c: c.toFixed(1)
   });
   if (hist.length > 25) hist.pop();
   saveH(); renderH();
