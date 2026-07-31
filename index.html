@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Deriv CCI (20) Candles + Entry/TP – Public</title>
+<title>Deriv CCI (20) + Entry/TP – Public</title>
 <style>
 *{box-sizing:border-box}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#12161f;color:#fff;margin:0;padding:20px;display:flex;justify-content:center}
 .container{width:100%;max-width:720px;background:#1a222d;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.4);border:1px solid #2a3444}
@@ -65,17 +65,17 @@ table.history-table th{color:#90a4ae;font-weight:normal}
 
     <div class="controls-row">
         <div class="symbol-picker">
-            <label for="symbolSelect">Symbol</label>
+            <label for="symbolSelect">Symbol (auto-fallback enabled)</label>
             <select id="symbolSelect">
-                <option value="1HZ100V">Volatility 100 (1s)</option>
-                <option value="R_100">Volatility 100 Index</option>
+                <option value="1HZ100V" selected>Volatility 100 (1s) – Best</option>
                 <option value="1HZ75V">Volatility 75 (1s)</option>
-                <option value="R_75">Volatility 75 Index</option>
                 <option value="1HZ50V">Volatility 50 (1s)</option>
-                <option value="R_50">Volatility 50 Index</option>
                 <option value="1HZ25V">Volatility 25 (1s)</option>
-                <option value="R_25">Volatility 25 Index</option>
                 <option value="1HZ10V">Volatility 10 (1s)</option>
+                <option value="R_100">Volatility 100 Index</option>
+                <option value="R_75">Volatility 75 Index</option>
+                <option value="R_50">Volatility 50 Index</option>
+                <option value="R_25">Volatility 25 Index</option>
                 <option value="R_10">Volatility 10 Index</option>
             </select>
         </div>
@@ -168,12 +168,18 @@ table.history-table th{color:#90a4ae;font-weight:normal}
     </div>
 
     <div id="logConsole"></div>
-    <div class="disclaimer">Public WebSocket • Candles + CCI(20) + Entry/TP + Arrows • Not financial advice</div>
+    <div class="disclaimer">Public WebSocket • Auto symbol fallback • Candles + CCI(20) + Entry/TP • Not financial advice</div>
 </div>
 
 <script>
 const CCI_PERIOD = 20;
 const MAX_CANDLES = 80;
+
+// Priority order – 1s indices first (most reliable on public feed)
+const SYMBOL_FALLBACKS = [
+    '1HZ100V', '1HZ75V', '1HZ50V', '1HZ25V', '1HZ10V',
+    'R_100', 'R_75', 'R_50', 'R_25', 'R_10'
+];
 
 let settings = {
     symbol: '1HZ100V',
@@ -187,12 +193,13 @@ let settings = {
 let candles = [];
 let cciValues = [];
 let signalMarkers = [];
-let activeEntry = null;   // {price, tp, type}
+let activeEntry = null;
 let ws = null;
 let currentSignal = null;
 let tradeHistory = [];
 let audioCtx = null;
 let lastCandleEpoch = 0;
+let triedSymbols = new Set();
 
 function logError(msg) {
     document.getElementById('logConsole').innerText = msg || '';
@@ -208,21 +215,21 @@ function tfLabel(g) {
 
 function loadSettings() {
     try {
-        const s = JSON.parse(localStorage.getItem('cci20_entry_tp'));
+        const s = JSON.parse(localStorage.getItem('cci20_entry_tp_v2'));
         if (s) settings = Object.assign(settings, s);
     } catch(e){}
     try {
-        const h = JSON.parse(localStorage.getItem('cci20_entry_tp_hist'));
+        const h = JSON.parse(localStorage.getItem('cci20_entry_tp_hist_v2'));
         if (Array.isArray(h)) tradeHistory = h;
     } catch(e){}
 }
 
 function saveSettings() {
-    localStorage.setItem('cci20_entry_tp', JSON.stringify(settings));
+    localStorage.setItem('cci20_entry_tp_v2', JSON.stringify(settings));
 }
 
 function saveHistory() {
-    localStorage.setItem('cci20_entry_tp_hist', JSON.stringify(tradeHistory));
+    localStorage.setItem('cci20_entry_tp_hist_v2', JSON.stringify(tradeHistory));
 }
 
 function applyForm() {
@@ -292,10 +299,8 @@ function drawPriceChart() {
         if (c.high > max) max = c.high;
     });
     if (activeEntry) {
-        if (activeEntry.price < min) min = activeEntry.price;
-        if (activeEntry.price > max) max = activeEntry.price;
-        if (activeEntry.tp < min) min = activeEntry.tp;
-        if (activeEntry.tp > max) max = activeEntry.tp;
+        min = Math.min(min, activeEntry.price, activeEntry.tp);
+        max = Math.max(max, activeEntry.price, activeEntry.tp);
     }
     if (min === max) { min -= 1; max += 1; }
     const range = max - min;
@@ -326,9 +331,7 @@ function drawPriceChart() {
         ctx.fillRect(x - candleW / 2, bodyTop, candleW, bodyH);
     });
 
-    // Entry + TP horizontal lines
     if (activeEntry) {
-        // Entry line
         ctx.strokeStyle = '#42a5f5';
         ctx.lineWidth = 1.5;
         ctx.setLineDash([6, 4]);
@@ -337,7 +340,6 @@ function drawPriceChart() {
         ctx.lineTo(W - padR, yScale(activeEntry.price));
         ctx.stroke();
 
-        // TP line
         ctx.strokeStyle = '#66bb6a';
         ctx.beginPath();
         ctx.moveTo(padL, yScale(activeEntry.tp));
@@ -353,7 +355,6 @@ function drawPriceChart() {
         ctx.fillText('TP ' + activeEntry.tp.toFixed(2), W - padR - 4, yScale(activeEntry.tp) - 4);
     }
 
-    // Buy / Sell arrows
     signalMarkers.forEach(m => {
         if (m.index < 0 || m.index >= candles.length) return;
         const c = candles[m.index];
@@ -462,10 +463,25 @@ function rebuildCCI() {
     cciValues = candles.map((_, i) => calcCCIAt(i));
 }
 
+function tryNextSymbol() {
+    triedSymbols.add(settings.symbol);
+    const next = SYMBOL_FALLBACKS.find(s => !triedSymbols.has(s));
+    if (next) {
+        settings.symbol = next;
+        document.getElementById('symbolSelect').value = next;
+        applyForm();
+        logError('Symbol invalid → switching to ' + next);
+        setTimeout(subscribe, 600);
+    } else {
+        logError('All Volatility symbols blocked on this public connection. Try a VPN.');
+    }
+}
+
 function initWS() {
     if (ws) { try { ws.onclose = null; ws.close(); } catch(e) {} }
     currentSignal = null;
     activeEntry = null;
+    triedSymbols.clear();
     resetCharts();
     document.getElementById('signalContainer').className = 'signal-box signal-neutral';
     document.getElementById('signalContainer').innerText = 'Connecting to public feed...';
@@ -474,18 +490,17 @@ function initWS() {
 
     const endpoints = [
         'wss://ws.derivws.com/websockets/v3?app_id=1089',
-        'wss://ws.binaryws.com/websockets/v3?app_id=1089',
-        'wss://api.derivws.com/trading/v1/options/ws/public'
+        'wss://ws.binaryws.com/websockets/v3?app_id=1089'
     ];
     let endpointIndex = 0;
 
     function tryConnect() {
         if (endpointIndex >= endpoints.length) {
-            logError('All public endpoints failed. Try a VPN.');
+            logError('Public endpoints failed. Try a VPN or different network.');
             return;
         }
         const url = endpoints[endpointIndex];
-        logError('Trying public endpoint...');
+        logError('Connecting to public feed...');
         ws = new WebSocket(url);
 
         ws.onopen = () => {
@@ -498,21 +513,16 @@ function initWS() {
         ws.onmessage = (ev) => {
             const data = JSON.parse(ev.data);
             if (data.error) {
+                const msg = (data.error.message || '').toLowerCase();
                 logError('Error: ' + data.error.message);
-                if (data.error.message && data.error.message.toLowerCase().includes('invalid')) {
-                    const fallbacks = ['1HZ100V', 'R_100', '1HZ75V', 'R_75'];
-                    const next = fallbacks.find(s => s !== settings.symbol);
-                    if (next) {
-                        settings.symbol = next;
-                        document.getElementById('symbolSelect').value = next;
-                        applyForm();
-                        subscribe();
-                    }
+                if (msg.includes('invalid') || msg.includes('not offered') || msg.includes('unavailable')) {
+                    tryNextSymbol();
                 }
                 return;
             }
 
             if (data.candles && Array.isArray(data.candles)) {
+                triedSymbols.clear(); // success
                 candles = data.candles.map(c => ({
                     time: c.epoch * 1000,
                     open: parseFloat(c.open),
@@ -583,7 +593,7 @@ function initWS() {
 function subscribe() {
     if (!ws || ws.readyState !== 1) return;
     resetCharts();
-    document.getElementById('signalContainer').innerText = 'Collecting candles...';
+    document.getElementById('signalContainer').innerText = 'Collecting candles for ' + settings.symbol + '...';
     document.getElementById('cciValue').innerText = '--';
 
     ws.send(JSON.stringify({
@@ -643,7 +653,6 @@ function evaluate(price) {
         sig = 'neutral';
         box.className = 'signal-box signal-neutral';
         box.innerText = `NEUTRAL — CCI ${cci.toFixed(1)}`;
-        // keep last activeEntry visible until new signal
     }
     currentSignal = sig;
 }
