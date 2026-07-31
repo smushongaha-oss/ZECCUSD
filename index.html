@@ -3,551 +3,380 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Deriv CCI (20) + Entry/TP – Public</title>
+<title>CCI (20) Entry/TP – Public</title>
 <style>
-*{box-sizing:border-box}body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#12161f;color:#fff;margin:0;padding:20px;display:flex;justify-content:center}
-.container{width:100%;max-width:720px;background:#1a222d;border-radius:12px;padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.4);border:1px solid #2a3444}
-.header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #2a3444;padding-bottom:15px;margin-bottom:20px;flex-wrap:wrap;gap:10px}
-.header h2{margin:0;font-size:1.25em}
-.status-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:.85em;font-weight:bold;background:#ff9800;color:#000}
-.status-badge.connected{background:#4caf50;color:#fff}
-.status-badge.disconnected{background:#f44336;color:#fff}
-.controls-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
-.controls-row label{font-size:.8em;color:#90a4ae;display:block;margin-bottom:4px}
-select,input[type=number]{background:#232d3b;color:#fff;border:1px solid #2a3444;border-radius:6px;padding:8px;font-size:.95em;width:100%}
-.symbol-picker,.tf-picker{flex:1;min-width:160px}
-details.settings{background:#202836;border-radius:8px;margin-bottom:16px;border:1px solid #2a3444}
-details.settings summary{padding:12px 16px;cursor:pointer;font-weight:bold;color:#90caf9;list-style:none}
-details.settings summary::-webkit-details-marker{display:none}
-.settings-body{padding:0 16px 16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.settings-body .full{grid-column:1/-1}
-.toggle-row{display:flex;align-items:center;justify-content:space-between;background:#232d3b;padding:8px 12px;border-radius:6px;font-size:.9em}
-.toggle-row input{width:auto}
-button.apply-btn{grid-column:1/-1;background:#1565c0;color:#fff;border:none;border-radius:6px;padding:10px;font-weight:bold;cursor:pointer}
-button.apply-btn:hover{background:#1976d2}
-button.clear-btn{background:none;border:1px solid #455a64;color:#90a4ae;border-radius:6px;padding:4px 10px;font-size:.75em;cursor:pointer}
-button.clear-btn:hover{border-color:#f44336;color:#f44336}
-.chart-box{width:100%;height:280px;border-radius:8px;overflow:hidden;border:1px solid #2a3444;margin-bottom:8px;background:#131722;position:relative}
-.chart-box.cci-box{height:140px;margin-bottom:16px}
-.chart-box canvas{display:block;width:100%;height:100%}
-.chart-empty-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;font-size:.85em;color:#607d8b}
-.price-card{background:#232d3b;padding:16px;border-radius:8px;text-align:center;margin-bottom:16px}
-.price-value{font-size:2em;font-weight:bold;color:#00bcd4;margin:8px 0}
-.signal-box{padding:18px;border-radius:8px;text-align:center;font-size:1.15em;font-weight:bold;margin-top:12px;transition:all .3s}
-.signal-neutral{background:#2e3846;color:#b0bec5}
-.signal-buy{background:#1b5e20;color:#81c784;border:2px solid #4caf50}
-.signal-sell{background:#b71c1c;color:#ef9a9a;border:2px solid #f44336}
-.details-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-top:12px}
-.detail-item{background:#232d3b;padding:12px;border-radius:6px;text-align:center}
-.detail-label{font-size:.75em;color:#90a4ae;margin-bottom:4px}
-.detail-value{font-weight:bold;font-size:1.05em}
-.history-section{margin-top:20px}
-.history-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.history-header h3{margin:0;font-size:1em;color:#90caf9}
-table.history-table{width:100%;border-collapse:collapse;font-size:.8em}
-table.history-table th,table.history-table td{padding:6px 6px;text-align:center;border-bottom:1px solid #2a3444}
-table.history-table th{color:#90a4ae;font-weight:normal}
-.dir-buy{color:#81c784;font-weight:bold}
-.dir-sell{color:#ef9a9a;font-weight:bold}
-.empty-history{color:#607d8b;text-align:center;padding:12px;font-size:.85em}
-#logConsole{margin-top:12px;font-size:.8em;color:#ff8a80;text-align:center;min-height:1em}
-.disclaimer{margin-top:16px;font-size:.72em;color:#607d8b;text-align:center;line-height:1.4}
-.locked{background:#1e2a38!important;color:#90a4ae!important;cursor:not-allowed}
-.tf-note{font-size:.75em;color:#78909c;margin-top:4px}
+*{box-sizing:border-box}body{font-family:system-ui,sans-serif;background:#12161f;color:#fff;margin:0;padding:16px;display:flex;justify-content:center}
+.container{width:100%;max-width:700px;background:#1a222d;border-radius:12px;padding:20px;border:1px solid #2a3444}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.header h2{margin:0;font-size:1.2em}
+.badge{padding:4px 10px;border-radius:20px;font-size:.8em;font-weight:700}
+.badge.on{background:#4caf50}.badge.off{background:#f44336}
+.row{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.row label{font-size:.75em;color:#90a4ae;display:block;margin-bottom:3px}
+select,input{background:#232d3b;color:#fff;border:1px solid #2a3444;border-radius:6px;padding:8px;width:100%;font-size:.9em}
+.flex1{flex:1;min-width:140px}
+details{background:#202836;border-radius:8px;margin-bottom:12px;border:1px solid #2a3444}
+details summary{padding:10px 14px;cursor:pointer;color:#90caf9;font-weight:600}
+.sbody{padding:0 14px 14px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sbody .full{grid-column:1/-1}
+.tog{display:flex;justify-content:space-between;align-items:center;background:#232d3b;padding:8px 12px;border-radius:6px;font-size:.85em}
+button.go{grid-column:1/-1;background:#1565c0;color:#fff;border:none;border-radius:6px;padding:10px;font-weight:700;cursor:pointer}
+.chart{width:100%;height:260px;border-radius:8px;border:1px solid #2a3444;margin-bottom:8px;background:#131722;position:relative}
+.chart.cci{height:130px}
+.chart canvas{width:100%;height:100%;display:block}
+.empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#607d8b;font-size:.85em}
+.price{background:#232d3b;padding:14px;border-radius:8px;text-align:center;margin-bottom:12px}
+.price .v{font-size:1.9em;font-weight:700;color:#00bcd4;margin:6px 0}
+.signal{padding:16px;border-radius:8px;text-align:center;font-weight:700;font-size:1.1em;margin-bottom:12px}
+.n{background:#2e3846;color:#b0bec5}.b{background:#1b5e20;color:#81c784;border:2px solid #4caf50}.s{background:#b71c1c;color:#ef9a9a;border:2px solid #f44336}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.cell{background:#232d3b;padding:10px;border-radius:6px;text-align:center}
+.cell .l{font-size:.7em;color:#90a4ae}.cell .v{font-weight:700;margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:.78em}
+th,td{padding:5px;text-align:center;border-bottom:1px solid #2a3444}
+th{color:#90a4ae;font-weight:500}
+.buy{color:#81c784;font-weight:700}.sell{color:#ef9a9a;font-weight:700}
+#log{margin-top:10px;font-size:.8em;color:#ff8a80;text-align:center;min-height:1.2em}
+.disc{margin-top:12px;font-size:.7em;color:#607d8b;text-align:center}
 </style>
 </head>
 <body>
 <div class="container">
-    <div class="header">
-        <h2 id="dashTitle">CCI (20) + Entry/TP</h2>
-        <span id="connectionStatus" class="status-badge disconnected">Connecting...</span>
+  <div class="header">
+    <h2 id="title">CCI (20) + Entry/TP</h2>
+    <span id="status" class="badge off">Connecting...</span>
+  </div>
+
+  <div class="row">
+    <div class="flex1">
+      <label>Symbol</label>
+      <select id="sym">
+        <option value="cryBTCUSD" selected>BTC/USD (recommended)</option>
+        <option value="frxEURUSD">EUR/USD</option>
+        <option value="frxGBPUSD">GBP/USD</option>
+        <option value="1HZ100V">Vol 100 (1s)</option>
+        <option value="1HZ75V">Vol 75 (1s)</option>
+        <option value="R_100">Vol 100</option>
+        <option value="R_75">Vol 75</option>
+      </select>
     </div>
-
-    <div class="controls-row">
-        <div class="symbol-picker">
-            <label for="symbolSelect">Symbol (auto-fallback)</label>
-            <select id="symbolSelect">
-                <option value="1HZ100V" selected>Volatility 100 (1s)</option>
-                <option value="1HZ75V">Volatility 75 (1s)</option>
-                <option value="1HZ50V">Volatility 50 (1s)</option>
-                <option value="1HZ25V">Volatility 25 (1s)</option>
-                <option value="1HZ10V">Volatility 10 (1s)</option>
-                <option value="R_100">Volatility 100</option>
-                <option value="R_75">Volatility 75</option>
-                <option value="R_50">Volatility 50</option>
-                <option value="R_25">Volatility 25</option>
-                <option value="R_10">Volatility 10</option>
-                <option value="cryBTCUSD">BTC/USD (public fallback)</option>
-                <option value="frxEURUSD">EUR/USD (public fallback)</option>
-            </select>
-        </div>
-        <div class="tf-picker">
-            <label for="tfSelect">Timeframe</label>
-            <select id="tfSelect">
-                <option value="60">1 Minute</option>
-                <option value="120">2 Minutes</option>
-                <option value="300" selected>5 Minutes</option>
-                <option value="900">15 Minutes</option>
-            </select>
-            <div class="tf-note">5m recommended for CCI(20)</div>
-        </div>
+    <div class="flex1">
+      <label>Timeframe</label>
+      <select id="tf">
+        <option value="60">1m</option>
+        <option value="120">2m</option>
+        <option value="300" selected>5m</option>
+        <option value="900">15m</option>
+      </select>
     </div>
+  </div>
 
-    <details class="settings">
-        <summary>CCI + Entry/TP Settings</summary>
-        <div class="settings-body">
-            <div>
-                <label>CCI Period (locked)</label>
-                <input type="number" value="20" class="locked" readonly>
-            </div>
-            <div>
-                <label for="cciThreshold">Threshold (±Y)</label>
-                <input type="number" id="cciThreshold" min="50" max="300" value="100">
-            </div>
-            <div>
-                <label for="tpOffset">Take Profit offset (points)</label>
-                <input type="number" id="tpOffset" min="1" step="1" value="150">
-            </div>
-            <div class="full toggle-row">
-                <span>🔊 Sound alert</span>
-                <input type="checkbox" id="soundToggle">
-            </div>
-            <div class="full toggle-row">
-                <span>🔔 Browser notification</span>
-                <input type="checkbox" id="notifyToggle">
-            </div>
-            <button class="apply-btn" id="applyBtn">Apply & Restart Feed</button>
-        </div>
-    </details>
-
-    <div class="chart-box">
-        <canvas id="priceChart"></canvas>
-        <div class="chart-empty-msg" id="priceEmptyMsg">Waiting for candles...</div>
+  <details>
+    <summary>Settings</summary>
+    <div class="sbody">
+      <div><label>CCI Threshold (±Y)</label><input type="number" id="th" value="100" min="50"></div>
+      <div><label>TP Offset</label><input type="number" id="tp" value="50" min="0.1" step="0.1"></div>
+      <div class="full tog"><span>Sound</span><input type="checkbox" id="snd"></div>
+      <div class="full tog"><span>Notifications</span><input type="checkbox" id="ntf"></div>
+      <button class="go" id="go">Apply & Restart</button>
     </div>
-    <div class="chart-box cci-box">
-        <canvas id="cciChart"></canvas>
-        <div class="chart-empty-msg" id="cciEmptyMsg">CCI panel loading...</div>
-    </div>
+  </details>
 
-    <div class="price-card">
-        <div class="detail-label" id="priceLabel">LAST CLOSE</div>
-        <div id="livePrice" class="price-value">0.00</div>
-        <div id="lastUpdate" style="font-size:.8em;color:#78909c">Connecting...</div>
-    </div>
+  <div class="chart"><canvas id="pc"></canvas><div class="empty" id="pe">Waiting for candles...</div></div>
+  <div class="chart cci"><canvas id="cc"></canvas><div class="empty" id="ce">CCI loading...</div></div>
 
-    <div id="signalContainer" class="signal-box signal-neutral">Connecting...</div>
+  <div class="price">
+    <div class="l" id="pl">LAST CLOSE</div>
+    <div class="v" id="price">0.00</div>
+    <div id="upd" style="font-size:.8em;color:#78909c">Connecting...</div>
+  </div>
 
-    <div class="details-grid">
-        <div class="detail-item"><div class="detail-label">CCI (20)</div><div id="cciValue" class="detail-value">--</div></div>
-        <div class="detail-item"><div class="detail-label">Entry</div><div id="entryPrice" class="detail-value">--</div></div>
-        <div class="detail-item"><div class="detail-label">Take Profit</div><div id="tpPrice" class="detail-value" style="color:#4caf50">--</div></div>
-        <div class="detail-item"><div class="detail-label">TF / ±Y</div><div id="tfDisplay" class="detail-value">5m / ±100</div></div>
-    </div>
+  <div id="sig" class="signal n">Connecting...</div>
 
-    <div class="history-section">
-        <div class="history-header">
-            <h3>Signal History</h3>
-            <button class="clear-btn" id="clearHistoryBtn">Clear</button>
-        </div>
-        <table class="history-table">
-            <thead><tr><th>Time</th><th>Symbol</th><th>TF</th><th>Signal</th><th>Entry</th><th>TP</th><th>CCI</th></tr></thead>
-            <tbody id="historyBody"></tbody>
-        </table>
-        <div class="empty-history" id="emptyHistoryMsg">No signal changes logged yet.</div>
-    </div>
+  <div class="grid">
+    <div class="cell"><div class="l">CCI (20)</div><div class="v" id="cci">--</div></div>
+    <div class="cell"><div class="l">Entry</div><div class="v" id="ent">--</div></div>
+    <div class="cell"><div class="l">Take Profit</div><div class="v" id="tpp" style="color:#4caf50">--</div></div>
+    <div class="cell"><div class="l">TF / ±Y</div><div class="v" id="tfd">5m / ±100</div></div>
+  </div>
 
-    <div id="logConsole"></div>
-    <div class="disclaimer">Public WebSocket only • If Volatility is blocked → use VPN or the BTC/EUR fallback • Not financial advice</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+    <strong style="color:#90caf9">Signal History</strong>
+    <button class="go" style="width:auto;padding:4px 10px;font-size:.75em;background:transparent;border:1px solid #455a64;color:#90a4ae" id="clr">Clear</button>
+  </div>
+  <table>
+    <thead><tr><th>Time</th><th>Sym</th><th>TF</th><th>Signal</th><th>Entry</th><th>TP</th><th>CCI</th></tr></thead>
+    <tbody id="hist"></tbody>
+  </table>
+  <div id="emptyH" style="text-align:center;color:#607d8b;padding:10px;font-size:.85em">No signals yet</div>
+
+  <div id="log"></div>
+  <div class="disc">Public WebSocket • Default BTC/USD (works everywhere) • Not financial advice</div>
 </div>
 
 <script>
-const CCI_PERIOD = 20;
-const MAX_CANDLES = 80;
+const PERIOD=20, MAX=80;
+const FB=['cryBTCUSD','frxEURUSD','frxGBPUSD','1HZ100V','1HZ75V','R_100','R_75'];
 
-const SYMBOL_FALLBACKS = [
-    '1HZ100V','1HZ75V','1HZ50V','1HZ25V','1HZ10V',
-    'R_100','R_75','R_50','R_25','R_10',
-    'cryBTCUSD','frxEURUSD'          // public fallbacks
-];
+let S={symbol:'cryBTCUSD',gran:300,th:100,tp:50,snd:false,ntf:false};
+let candles=[],cciA=[],marks=[],entry=null,ws=null,sig=null,hist=[],actx=null,lastE=0,tried=new Set();
 
-let settings = { symbol:'1HZ100V', granularity:300, cciThreshold:100, tpOffset:150, sound:false, notify:false };
-let candles=[], cciValues=[], signalMarkers=[], activeEntry=null, ws=null, currentSignal=null, tradeHistory=[], audioCtx=null, lastCandleEpoch=0;
-let triedSymbols = new Set();
+const $ = id => document.getElementById(id);
+const log = m => $('log').textContent = m||'';
+const tfL = g => ({60:'1m',120:'2m',300:'5m',900:'15m'})[g]||g+'s';
 
-function logError(m){ document.getElementById('logConsole').innerText = m||''; }
-function tfLabel(g){ return ({60:'1m',120:'2m',300:'5m',900:'15m'})[g]||(g+'s'); }
+function load(){try{Object.assign(S,JSON.parse(localStorage.getItem('cci_f1')||'{}'))}catch(e){}try{hist=JSON.parse(localStorage.getItem('cci_fh1')||'[]')}catch(e){}}
+function save(){localStorage.setItem('cci_f1',JSON.stringify(S))}
+function saveH(){localStorage.setItem('cci_fh1',JSON.stringify(hist))}
 
-function loadSettings(){
-    try{ const s=JSON.parse(localStorage.getItem('cci20_pub_v3')); if(s) settings=Object.assign(settings,s); }catch(e){}
-    try{ const h=JSON.parse(localStorage.getItem('cci20_pub_hist_v3')); if(Array.isArray(h)) tradeHistory=h; }catch(e){}
-}
-function saveSettings(){ localStorage.setItem('cci20_pub_v3', JSON.stringify(settings)); }
-function saveHistory(){ localStorage.setItem('cci20_pub_hist_v3', JSON.stringify(tradeHistory)); }
-
-function applyForm(){
-    document.getElementById('symbolSelect').value = settings.symbol;
-    document.getElementById('tfSelect').value = String(settings.granularity);
-    document.getElementById('cciThreshold').value = settings.cciThreshold;
-    document.getElementById('tpOffset').value = settings.tpOffset;
-    document.getElementById('tfDisplay').innerText = tfLabel(settings.granularity)+' / ±'+settings.cciThreshold;
-    document.getElementById('soundToggle').checked = settings.sound;
-    document.getElementById('notifyToggle').checked = settings.notify;
-    document.getElementById('dashTitle').innerText = settings.symbol+' • CCI(20) '+tfLabel(settings.granularity);
-    document.getElementById('priceLabel').innerText = 'LAST CLOSE ('+settings.symbol+')';
+function apply(){
+  $('sym').value=S.symbol; $('tf').value=S.gran; $('th').value=S.th; $('tp').value=S.tp;
+  $('snd').checked=S.snd; $('ntf').checked=S.ntf;
+  $('tfd').textContent=tfL(S.gran)+' / ±'+S.th;
+  $('title').textContent=S.symbol+' • CCI(20) '+tfL(S.gran);
+  $('pl').textContent='LAST CLOSE ('+S.symbol+')';
 }
 
-function readForm(){
-    const th=parseFloat(document.getElementById('cciThreshold').value);
-    const tp=parseFloat(document.getElementById('tpOffset').value);
-    if(!Number.isFinite(th)||th<50){ logError('Threshold ≥ 50'); return false; }
-    if(!Number.isFinite(tp)||tp<=0){ logError('TP offset must be positive'); return false; }
-    settings.symbol = document.getElementById('symbolSelect').value;
-    settings.granularity = parseInt(document.getElementById('tfSelect').value,10);
-    settings.cciThreshold = th;
-    settings.tpOffset = tp;
-    settings.sound = document.getElementById('soundToggle').checked;
-    settings.notify = document.getElementById('notifyToggle').checked;
-    logError('');
-    return true;
+function read(){
+  const th=+($('th').value), tp=+($('tp').value);
+  if(!(th>=50)){log('Threshold ≥ 50');return false}
+  if(!(tp>0)){log('TP must be > 0');return false}
+  S.symbol=$('sym').value; S.gran=+$('tf').value; S.th=th; S.tp=tp;
+  S.snd=$('snd').checked; S.ntf=$('ntf').checked; log(''); return true;
 }
 
-function resetCharts(){
-    candles=[]; cciValues=[]; signalMarkers=[]; activeEntry=null; lastCandleEpoch=0;
-    document.getElementById('entryPrice').innerText='--';
-    document.getElementById('tpPrice').innerText='--';
-    ['priceChart','cciChart'].forEach(id=>{
-        const c=document.getElementById(id);
-        if(c) c.getContext('2d').clearRect(0,0,c.width,c.height);
-    });
-    document.getElementById('priceEmptyMsg').style.display='flex';
-    document.getElementById('cciEmptyMsg').style.display='flex';
+function reset(){
+  candles=[];cciA=[];marks=[];entry=null;lastE=0;
+  $('ent').textContent='--'; $('tpp').textContent='--';
+  $('pe').style.display='flex'; $('ce').style.display='flex';
 }
 
-function drawPriceChart(){
-    const canvas=document.getElementById('priceChart');
-    if(!canvas||candles.length<2) return;
-    document.getElementById('priceEmptyMsg').style.display='none';
-    const dpr=window.devicePixelRatio||1;
-    const rect=canvas.parentElement.getBoundingClientRect();
-    canvas.width=rect.width*dpr; canvas.height=rect.height*dpr;
-    const ctx=canvas.getContext('2d');
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    const W=rect.width, H=rect.height;
-    ctx.clearRect(0,0,W,H);
-    const padT=12,padB=20,padL=8,padR=8;
-    const chartH=H-padT-padB, chartW=W-padL-padR;
-    let min=Infinity,max=-Infinity;
-    candles.forEach(c=>{ min=Math.min(min,c.low); max=Math.max(max,c.high); });
-    if(activeEntry){ min=Math.min(min,activeEntry.price,activeEntry.tp); max=Math.max(max,activeEntry.price,activeEntry.tp); }
-    if(min===max){ min-=1; max+=1; }
-    const rng=max-min; min-=rng*0.05; max+=rng*0.05;
-    const n=candles.length, candleW=Math.max(3,(chartW/n)*0.7), gap=chartW/n;
-    const y=v=>padT+chartH-((v-min)/(max-min))*chartH;
+function drawP(){
+  const c=$('pc'); if(!c||candles.length<2)return;
+  $('pe').style.display='none';
+  const dpr=devicePixelRatio||1, r=c.parentElement.getBoundingClientRect();
+  c.width=r.width*dpr; c.height=r.height*dpr;
+  const ctx=c.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W=r.width,H=r.height, pt=10,pb=18,pl=6,pr=6, ch=H-pt-pb, cw=W-pl-pr;
+  let mn=Infinity,mx=-Infinity;
+  candles.forEach(x=>{mn=Math.min(mn,x.l);mx=Math.max(mx,x.h)});
+  if(entry){mn=Math.min(mn,entry.p,entry.t);mx=Math.max(mx,entry.p,entry.t)}
+  if(mn===mx){mn--;mx++} const rng=mx-mn; mn-=rng*.05; mx+=rng*.05;
+  const n=candles.length, gap=cw/n, bw=Math.max(2,gap*.65);
+  const Y=v=>pt+ch-((v-mn)/(mx-mn))*ch;
 
-    ctx.strokeStyle='#1e2a38'; ctx.lineWidth=1;
-    for(let i=0;i<=4;i++){ const yy=padT+(chartH/4)*i; ctx.beginPath(); ctx.moveTo(padL,yy); ctx.lineTo(W-padR,yy); ctx.stroke(); }
+  ctx.strokeStyle='#1e2a38'; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=pt+(ch/4)*i;ctx.beginPath();ctx.moveTo(pl,y);ctx.lineTo(W-pr,y);ctx.stroke()}
 
-    candles.forEach((c,i)=>{
-        const x=padL+i*gap+gap/2;
-        const col=c.close>=c.open?'#26a69a':'#ef5350';
-        ctx.strokeStyle=col; ctx.lineWidth=1;
-        ctx.beginPath(); ctx.moveTo(x,y(c.high)); ctx.lineTo(x,y(c.low)); ctx.stroke();
-        const yO=y(c.open), yC=y(c.close);
-        ctx.fillStyle=col;
-        ctx.fillRect(x-candleW/2, Math.min(yO,yC), candleW, Math.max(1,Math.abs(yO-yC)));
-    });
+  candles.forEach((x,i)=>{
+    const cx=pl+i*gap+gap/2, col=x.c>=x.o?'#26a69a':'#ef5350';
+    ctx.strokeStyle=col; ctx.beginPath(); ctx.moveTo(cx,Y(x.h)); ctx.lineTo(cx,Y(x.l)); ctx.stroke();
+    const yo=Y(x.o),yc=Y(x.c);
+    ctx.fillStyle=col; ctx.fillRect(cx-bw/2,Math.min(yo,yc),bw,Math.max(1,Math.abs(yo-yc)));
+  });
 
-    if(activeEntry){
-        ctx.setLineDash([6,4]);
-        ctx.strokeStyle='#42a5f5'; ctx.lineWidth=1.5;
-        ctx.beginPath(); ctx.moveTo(padL,y(activeEntry.price)); ctx.lineTo(W-padR,y(activeEntry.price)); ctx.stroke();
-        ctx.strokeStyle='#66bb6a';
-        ctx.beginPath(); ctx.moveTo(padL,y(activeEntry.tp)); ctx.lineTo(W-padR,y(activeEntry.tp)); ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.font='11px Arial'; ctx.textAlign='right';
-        ctx.fillStyle='#42a5f5'; ctx.fillText('Entry '+activeEntry.price.toFixed(2), W-padR-4, y(activeEntry.price)-4);
-        ctx.fillStyle='#66bb6a'; ctx.fillText('TP '+activeEntry.tp.toFixed(2), W-padR-4, y(activeEntry.tp)-4);
-    }
-
-    signalMarkers.forEach(m=>{
-        if(m.index<0||m.index>=candles.length) return;
-        const c=candles[m.index], x=padL+m.index*gap+gap/2;
-        ctx.font='bold 14px Arial'; ctx.textAlign='center';
-        if(m.type==='buy'){ ctx.fillStyle='#00e676'; ctx.fillText('▲',x,y(c.low)+16); }
-        else{ ctx.fillStyle='#ff1744'; ctx.fillText('▼',x,y(c.high)-6); }
-    });
-
-    ctx.fillStyle='#607d8b'; ctx.font='11px Arial'; ctx.textAlign='left';
-    ctx.fillText(max.toFixed(2), padL+2, padT+12);
-    ctx.fillText(min.toFixed(2), padL+2, H-6);
-}
-
-function drawCCIChart(){
-    const canvas=document.getElementById('cciChart');
-    if(!canvas||cciValues.length<2) return;
-    document.getElementById('cciEmptyMsg').style.display='none';
-    const dpr=window.devicePixelRatio||1;
-    const rect=canvas.parentElement.getBoundingClientRect();
-    canvas.width=rect.width*dpr; canvas.height=rect.height*dpr;
-    const ctx=canvas.getContext('2d');
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    const W=rect.width, H=rect.height;
-    ctx.clearRect(0,0,W,H);
-    const padT=10,padB=10,padL=8,padR=8;
-    const chartH=H-padT-padB, chartW=W-padL-padR;
-    const Y=settings.cciThreshold;
-    let min=-Y*1.5, max=Y*1.5;
-    cciValues.forEach(v=>{ if(v!==null){ min=Math.min(min,v); max=Math.max(max,v); }});
-    const pad=(max-min)*0.1||20; min-=pad; max+=pad;
-    const n=cciValues.length, gap=chartW/Math.max(n-1,1);
-    const y=v=>padT+chartH-((v-min)/(max-min))*chartH;
-
-    ctx.setLineDash([4,4]);
-    ctx.strokeStyle='#455a64'; ctx.beginPath(); ctx.moveTo(padL,y(0)); ctx.lineTo(W-padR,y(0)); ctx.stroke();
-    ctx.strokeStyle='#ef5350'; ctx.beginPath(); ctx.moveTo(padL,y(Y)); ctx.lineTo(W-padR,y(Y)); ctx.stroke();
-    ctx.strokeStyle='#26a69a'; ctx.beginPath(); ctx.moveTo(padL,y(-Y)); ctx.lineTo(W-padR,y(-Y)); ctx.stroke();
+  if(entry){
+    ctx.setLineDash([5,3]); ctx.lineWidth=1.4;
+    ctx.strokeStyle='#42a5f5'; ctx.beginPath(); ctx.moveTo(pl,Y(entry.p)); ctx.lineTo(W-pr,Y(entry.p)); ctx.stroke();
+    ctx.strokeStyle='#66bb6a'; ctx.beginPath(); ctx.moveTo(pl,Y(entry.t)); ctx.lineTo(W-pr,Y(entry.t)); ctx.stroke();
     ctx.setLineDash([]);
+    ctx.font='10px system-ui'; ctx.textAlign='right';
+    ctx.fillStyle='#42a5f5'; ctx.fillText('E '+entry.p.toFixed(2),W-pr-3,Y(entry.p)-3);
+    ctx.fillStyle='#66bb6a'; ctx.fillText('TP '+entry.t.toFixed(2),W-pr-3,Y(entry.t)-3);
+  }
 
-    ctx.strokeStyle='#ffca28'; ctx.lineWidth=1.8;
-    ctx.beginPath();
-    let started=false;
-    cciValues.forEach((v,i)=>{
-        if(v===null) return;
-        const x=padL+i*gap, yy=y(v);
-        if(!started){ ctx.moveTo(x,yy); started=true; } else ctx.lineTo(x,yy);
-    });
-    ctx.stroke();
+  marks.forEach(m=>{
+    if(m.i<0||m.i>=n)return;
+    const x=candles[m.i], cx=pl+m.i*gap+gap/2;
+    ctx.font='bold 13px system-ui'; ctx.textAlign='center';
+    if(m.t==='buy'){ctx.fillStyle='#00e676';ctx.fillText('▲',cx,Y(x.l)+14)}
+    else{ctx.fillStyle='#ff1744';ctx.fillText('▼',cx,Y(x.h)-5)}
+  });
 
-    ctx.fillStyle='#90a4ae'; ctx.font='10px Arial'; ctx.textAlign='left';
-    ctx.fillText('+'+Y, padL+2, y(Y)-3);
-    ctx.fillText('-'+Y, padL+2, y(-Y)+11);
-    ctx.fillText('CCI', padL+2, 12);
+  ctx.fillStyle='#607d8b'; ctx.font='10px system-ui'; ctx.textAlign='left';
+  ctx.fillText(mx.toFixed(2),pl+2,pt+10); ctx.fillText(mn.toFixed(2),pl+2,H-4);
 }
 
-function redraw(){ drawPriceChart(); drawCCIChart(); }
-window.addEventListener('resize', redraw);
+function drawC(){
+  const c=$('cc'); if(!c||cciA.length<2)return;
+  $('ce').style.display='none';
+  const dpr=devicePixelRatio||1, r=c.parentElement.getBoundingClientRect();
+  c.width=r.width*dpr; c.height=r.height*dpr;
+  const ctx=c.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W=r.width,H=r.height, pt=8,pb=8,pl=6,pr=6, ch=H-pt-pb, cw=W-pl-pr;
+  const Yv=S.th; let mn=-Yv*1.4, mx=Yv*1.4;
+  cciA.forEach(v=>{if(v!=null){mn=Math.min(mn,v);mx=Math.max(mx,v)}});
+  const pad=(mx-mn)*.1||15; mn-=pad; mx+=pad;
+  const n=cciA.length, gap=cw/Math.max(n-1,1);
+  const Y=v=>pt+ch-((v-mn)/(mx-mn))*ch;
 
-function calcCCIAt(idx){
-    if(idx<CCI_PERIOD-1) return null;
-    const slice=candles.slice(idx-CCI_PERIOD+1, idx+1);
-    const tp=slice.map(c=>(c.high+c.low+c.close)/3);
-    const sma=tp.reduce((a,b)=>a+b,0)/CCI_PERIOD;
-    const md=tp.reduce((a,b)=>a+Math.abs(b-sma),0)/CCI_PERIOD;
-    if(md===0) return 0;
-    return (tp[tp.length-1]-sma)/(0.015*md);
-}
-function rebuildCCI(){ cciValues=candles.map((_,i)=>calcCCIAt(i)); }
+  ctx.setLineDash([3,3]);
+  ctx.strokeStyle='#455a64'; ctx.beginPath(); ctx.moveTo(pl,Y(0)); ctx.lineTo(W-pr,Y(0)); ctx.stroke();
+  ctx.strokeStyle='#ef5350'; ctx.beginPath(); ctx.moveTo(pl,Y(Yv)); ctx.lineTo(W-pr,Y(Yv)); ctx.stroke();
+  ctx.strokeStyle='#26a69a'; ctx.beginPath(); ctx.moveTo(pl,Y(-Yv)); ctx.lineTo(W-pr,Y(-Yv)); ctx.stroke();
+  ctx.setLineDash([]);
 
-function tryNextSymbol(){
-    triedSymbols.add(settings.symbol);
-    const next=SYMBOL_FALLBACKS.find(s=>!triedSymbols.has(s));
-    if(next){
-        settings.symbol=next;
-        document.getElementById('symbolSelect').value=next;
-        applyForm();
-        logError('Symbol blocked → trying '+next);
-        setTimeout(subscribe, 500);
-    } else {
-        logError('All symbols blocked on this public IP. Use a VPN (Singapore / Cyprus / South Africa).');
-    }
-}
+  ctx.strokeStyle='#ffca28'; ctx.lineWidth=1.6; ctx.beginPath();
+  let st=false;
+  cciA.forEach((v,i)=>{if(v==null)return; const x=pl+i*gap,y=Y(v); if(!st){ctx.moveTo(x,y);st=true}else ctx.lineTo(x,y)});
+  ctx.stroke();
 
-function initWS(){
-    if(ws){ try{ws.onclose=null; ws.close();}catch(e){} }
-    currentSignal=null; activeEntry=null; triedSymbols.clear();
-    resetCharts();
-    document.getElementById('signalContainer').className='signal-box signal-neutral';
-    document.getElementById('signalContainer').innerText='Connecting to public feed...';
-    document.getElementById('cciValue').innerText='--';
-    document.getElementById('livePrice').innerText='0.00';
-
-    const endpoints=[
-        'wss://ws.derivws.com/websockets/v3?app_id=1089',
-        'wss://ws.binaryws.com/websockets/v3?app_id=1089'
-    ];
-    let ei=0;
-
-    function tryConnect(){
-        if(ei>=endpoints.length){ logError('Public endpoints failed. Try a VPN.'); return; }
-        logError('Connecting public WebSocket...');
-        ws=new WebSocket(endpoints[ei]);
-
-        ws.onopen=()=>{
-            document.getElementById('connectionStatus').innerText='Connected';
-            document.getElementById('connectionStatus').className='status-badge connected';
-            logError('');
-            subscribe();
-        };
-
-        ws.onmessage=ev=>{
-            const data=JSON.parse(ev.data);
-            if(data.error){
-                logError('Error: '+data.error.message);
-                const m=(data.error.message||'').toLowerCase();
-                if(m.includes('invalid')||m.includes('not offered')||m.includes('unavailable')||m.includes('blocked')){
-                    tryNextSymbol();
-                }
-                return;
-            }
-
-            if(data.candles && Array.isArray(data.candles)){
-                triedSymbols.clear();
-                candles=data.candles.map(c=>({
-                    time:c.epoch*1000,
-                    open:+c.open, high:+c.high, low:+c.low, close:+c.close
-                }));
-                if(candles.length>MAX_CANDLES) candles=candles.slice(-MAX_CANDLES);
-                lastCandleEpoch=candles.length?candles[candles.length-1].time:0;
-                rebuildCCI(); redraw();
-                if(candles.length){
-                    const last=candles[candles.length-1];
-                    document.getElementById('livePrice').innerText=last.close.toFixed(2);
-                    document.getElementById('lastUpdate').innerText='Last candle: '+new Date(last.time).toLocaleTimeString();
-                    evaluate(last.close);
-                }
-                return;
-            }
-
-            if(data.msg_type==='ohlc' && data.ohlc){
-                const o=data.ohlc, epoch=o.epoch*1000;
-                const candle={ time:epoch, open:+o.open, high:+o.high, low:+o.low, close:+o.close };
-                if(epoch===lastCandleEpoch && candles.length) candles[candles.length-1]=candle;
-                else {
-                    candles.push(candle);
-                    lastCandleEpoch=epoch;
-                    if(candles.length>MAX_CANDLES){
-                        candles.shift();
-                        signalMarkers=signalMarkers.map(m=>({...m,index:m.index-1})).filter(m=>m.index>=0);
-                    }
-                }
-                rebuildCCI(); redraw();
-                document.getElementById('livePrice').innerText=candle.close.toFixed(2);
-                document.getElementById('lastUpdate').innerText='Last candle: '+new Date(epoch).toLocaleTimeString();
-                evaluate(candle.close);
-            }
-        };
-
-        ws.onclose=()=>{ document.getElementById('connectionStatus').innerText='Disconnected'; document.getElementById('connectionStatus').className='status-badge disconnected'; ei++; setTimeout(tryConnect,1500); };
-        ws.onerror=()=>{ ei++; setTimeout(tryConnect,1500); };
-    }
-    tryConnect();
+  ctx.fillStyle='#90a4ae'; ctx.font='9px system-ui'; ctx.textAlign='left';
+  ctx.fillText('+'+Yv,pl+2,Y(Yv)-2); ctx.fillText('-'+Yv,pl+2,Y(-Yv)+10); ctx.fillText('CCI',pl+2,10);
 }
 
-function subscribe(){
-    if(!ws||ws.readyState!==1) return;
-    resetCharts();
-    document.getElementById('signalContainer').innerText='Collecting candles for '+settings.symbol+'...';
-    document.getElementById('cciValue').innerText='--';
-    ws.send(JSON.stringify({
-        ticks_history: settings.symbol,
-        adjust_start_time:1,
-        count:MAX_CANDLES,
-        end:'latest',
-        start:1,
-        style:'candles',
-        granularity:settings.granularity,
-        subscribe:1
-    }));
+function redraw(){drawP();drawC()}
+addEventListener('resize',redraw);
+
+function cciAt(i){
+  if(i<PERIOD-1)return null;
+  const sl=candles.slice(i-PERIOD+1,i+1);
+  const tp=sl.map(x=>(x.h+x.l+x.c)/3);
+  const sma=tp.reduce((a,b)=>a+b,0)/PERIOD;
+  const md=tp.reduce((a,b)=>a+Math.abs(b-sma),0)/PERIOD;
+  return md? (tp.at(-1)-sma)/(0.015*md) : 0;
+}
+function rebuild(){cciA=candles.map((_,i)=>cciAt(i))}
+
+function next(){
+  tried.add(S.symbol);
+  const n=FB.find(s=>!tried.has(s));
+  if(n){S.symbol=n; $('sym').value=n; apply(); log('Switched to '+n); setTimeout(sub,300)}
+  else log('All symbols failed – try VPN or refresh');
 }
 
-function evaluate(price){
-    if(!cciValues.length) return;
-    const cci=cciValues[cciValues.length-1];
-    const box=document.getElementById('signalContainer');
-    if(cci===null){ box.innerText=`Collecting CCI (${candles.length}/${CCI_PERIOD})...`; return; }
-    document.getElementById('cciValue').innerText=cci.toFixed(1);
-    let sig;
-    if(cci>settings.cciThreshold){
-        sig='buy'; box.className='signal-box signal-buy';
-        const entry=price, tp=entry+settings.tpOffset;
-        box.innerText=`BUY — CCI ${cci.toFixed(1)} | Entry ${entry.toFixed(2)} → TP ${tp.toFixed(2)}`;
-        if(sig!==currentSignal){
-            activeEntry={price:entry,tp,type:'buy'};
-            document.getElementById('entryPrice').innerText=entry.toFixed(2);
-            document.getElementById('tpPrice').innerText=tp.toFixed(2);
-            signalMarkers.push({index:candles.length-1,type:'buy'});
-            record('buy',entry,tp,cci); redraw();
+function connect(){
+  if(ws){try{ws.onclose=null;ws.close()}catch(e){}}
+  sig=null; entry=null; tried.clear(); reset();
+  $('sig').className='signal n'; $('sig').textContent='Connecting...';
+  $('cci').textContent='--'; $('price').textContent='0.00';
+
+  const urls=['wss://ws.derivws.com/websockets/v3?app_id=1089','wss://ws.binaryws.com/websockets/v3?app_id=1089'];
+  let ui=0;
+
+  function tryU(){
+    if(ui>=urls.length){log('Connection failed');return}
+    log('Connecting...');
+    ws=new WebSocket(urls[ui]);
+    ws.onopen=()=>{ $('status').textContent='Connected'; $('status').className='badge on'; log(''); sub(); };
+    ws.onmessage=e=>{
+      const d=JSON.parse(e.data);
+      if(d.error){
+        log(d.error.message||'Error');
+        const m=(d.error.message||'').toLowerCase();
+        if(m.includes('invalid')||m.includes('not offered')||m.includes('unavailable')) next();
+        return;
+      }
+      if(d.candles){
+        tried.clear();
+        candles=d.candles.map(c=>({t:c.epoch*1000,o:+c.open,h:+c.high,l:+c.low,c:+c.close}));
+        if(candles.length>MAX) candles=candles.slice(-MAX);
+        lastE=candles.length?candles.at(-1).t:0;
+        rebuild(); redraw();
+        if(candles.length){
+          const last=candles.at(-1);
+          $('price').textContent=last.c.toFixed(2);
+          $('upd').textContent='Last: '+new Date(last.t).toLocaleTimeString();
+          evalC(last.c);
         }
-    } else if(cci<-settings.cciThreshold){
-        sig='sell'; box.className='signal-box signal-sell';
-        const entry=price, tp=entry-settings.tpOffset;
-        box.innerText=`SELL — CCI ${cci.toFixed(1)} | Entry ${entry.toFixed(2)} → TP ${tp.toFixed(2)}`;
-        if(sig!==currentSignal){
-            activeEntry={price:entry,tp,type:'sell'};
-            document.getElementById('entryPrice').innerText=entry.toFixed(2);
-            document.getElementById('tpPrice').innerText=tp.toFixed(2);
-            signalMarkers.push({index:candles.length-1,type:'sell'});
-            record('sell',entry,tp,cci); redraw();
+        return;
+      }
+      if(d.msg_type==='ohlc'&&d.ohlc){
+        const o=d.ohlc, ep=o.epoch*1000;
+        const cd={t:ep,o:+o.open,h:+o.high,l:+o.low,c:+o.close};
+        if(ep===lastE&&candles.length) candles[candles.length-1]=cd;
+        else{
+          candles.push(cd); lastE=ep;
+          if(candles.length>MAX){candles.shift(); marks=marks.map(m=>({...m,i:m.i-1})).filter(m=>m.i>=0)}
         }
-    } else {
-        sig='neutral'; box.className='signal-box signal-neutral';
-        box.innerText=`NEUTRAL — CCI ${cci.toFixed(1)}`;
+        rebuild(); redraw();
+        $('price').textContent=cd.c.toFixed(2);
+        $('upd').textContent='Last: '+new Date(ep).toLocaleTimeString();
+        evalC(cd.c);
+      }
+    };
+    ws.onclose=()=>{ $('status').textContent='Disconnected'; $('status').className='badge off'; ui++; setTimeout(tryU,1000); };
+    ws.onerror=()=>{ui++; setTimeout(tryU,1000)};
+  }
+  tryU();
+}
+
+function sub(){
+  if(!ws||ws.readyState!==1)return;
+  reset();
+  $('sig').textContent='Loading '+S.symbol+'...';
+  $('cci').textContent='--';
+  ws.send(JSON.stringify({ticks_history:S.symbol,adjust_start_time:1,count:MAX,end:'latest',start:1,style:'candles',granularity:S.gran,subscribe:1}));
+}
+
+function evalC(price){
+  if(!cciA.length)return;
+  const cci=cciA.at(-1);
+  const box=$('sig');
+  if(cci==null){box.textContent=`Building CCI (${candles.length}/${PERIOD})...`;return}
+  $('cci').textContent=cci.toFixed(1);
+  let ns;
+  if(cci>S.th){
+    ns='buy'; box.className='signal b';
+    const e=price, t=e+S.tp;
+    box.textContent=`BUY  CCI ${cci.toFixed(1)}  |  Entry ${e.toFixed(2)} → TP ${t.toFixed(2)}`;
+    if(ns!==sig){
+      entry={p:e,t}; $('ent').textContent=e.toFixed(2); $('tpp').textContent=t.toFixed(2);
+      marks.push({i:candles.length-1,t:'buy'}); rec('buy',e,t,cci); redraw();
     }
-    currentSignal=sig;
+  }else if(cci<-S.th){
+    ns='sell'; box.className='signal s';
+    const e=price, t=e-S.tp;
+    box.textContent=`SELL  CCI ${cci.toFixed(1)}  |  Entry ${e.toFixed(2)} → TP ${t.toFixed(2)}`;
+    if(ns!==sig){
+      entry={p:e,t}; $('ent').textContent=e.toFixed(2); $('tpp').textContent=t.toFixed(2);
+      marks.push({i:candles.length-1,t:'sell'}); rec('sell',e,t,cci); redraw();
+    }
+  }else{
+    ns='neutral'; box.className='signal n'; box.textContent=`NEUTRAL  CCI ${cci.toFixed(1)}`;
+  }
+  sig=ns;
 }
 
-function playBeep(dir){
-    if(!settings.sound) return;
-    try{
-        if(!audioCtx) audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-        const o=audioCtx.createOscillator(), g=audioCtx.createGain();
-        o.connect(g); g.connect(audioCtx.destination);
-        o.frequency.value=dir==='buy'?880:440; o.type='sine';
-        g.gain.setValueAtTime(0.15,audioCtx.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.4);
-        o.start(); o.stop(audioCtx.currentTime+0.4);
-    }catch(e){}
+function beep(d){
+  if(!S.snd)return;
+  try{
+    if(!actx)actx=new (AudioContext||webkitAudioContext)();
+    const o=actx.createOscillator(),g=actx.createGain();
+    o.connect(g);g.connect(actx.destination);
+    o.frequency.value=d==='buy'?880:440; o.type='sine';
+    g.gain.setValueAtTime(.12,actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+.35);
+    o.start();o.stop(actx.currentTime+.35);
+  }catch(e){}
 }
 
-function notify(dir,entry,tp,cci){
-    if(!settings.notify||!('Notification'in window)||Notification.permission!=='granted') return;
-    new Notification((dir==='buy'?'🟢 BUY':'🔴 SELL')+' CCI(20) — '+settings.symbol,{
-        body:`Entry: ${entry.toFixed(2)} | TP: ${tp.toFixed(2)} | CCI: ${cci.toFixed(1)}`
-    });
+function notif(d,e,t,c){
+  if(!S.ntf||!('Notification'in window)||Notification.permission!=='granted')return;
+  new Notification((d==='buy'?'🟢 BUY':'🔴 SELL')+' '+S.symbol,{body:`Entry ${e.toFixed(2)} | TP ${t.toFixed(2)} | CCI ${c.toFixed(1)}`});
 }
 
-function record(dir,entry,tp,cci){
-    tradeHistory.unshift({
-        time:new Date().toLocaleTimeString(),
-        symbol:settings.symbol,
-        tf:tfLabel(settings.granularity),
-        direction:dir,
-        entry:entry.toFixed(2),
-        tp:tp.toFixed(2),
-        cci:cci.toFixed(1)
-    });
-    if(tradeHistory.length>30) tradeHistory.pop();
-    saveHistory(); renderHistory();
-    playBeep(dir); notify(dir,entry,tp,cci);
+function rec(d,e,t,c){
+  hist.unshift({time:new Date().toLocaleTimeString(),sym:S.symbol,tf:tfL(S.gran),dir:d,e:e.toFixed(2),t:t.toFixed(2),c:c.toFixed(1)});
+  if(hist.length>25)hist.pop(); saveH(); renderH(); beep(d); notif(d,e,t,c);
 }
 
-function renderHistory(){
-    const body=document.getElementById('historyBody');
-    const empty=document.getElementById('emptyHistoryMsg');
-    body.innerHTML='';
-    if(!tradeHistory.length){ empty.style.display='block'; return; }
-    empty.style.display='none';
-    tradeHistory.forEach(i=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${i.time}</td><td>${i.symbol}</td><td>${i.tf}</td>
-            <td class="dir-${i.direction}">${i.direction.toUpperCase()}</td>
-            <td>${i.entry}</td><td>${i.tp}</td><td>${i.cci}</td>`;
-        body.appendChild(tr);
-    });
+function renderH(){
+  const b=$('hist'), em=$('emptyH'); b.innerHTML='';
+  if(!hist.length){em.style.display='block';return}
+  em.style.display='none';
+  hist.forEach(i=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${i.time}</td><td>${i.sym}</td><td>${i.tf}</td><td class="${i.dir}">${i.dir.toUpperCase()}</td><td>${i.e}</td><td>${i.t}</td><td>${i.c}</td>`;
+    b.appendChild(tr);
+  });
 }
 
-document.getElementById('applyBtn').onclick=()=>{
-    if(!readForm()) return;
-    saveSettings(); applyForm();
-    if(settings.notify && Notification.permission==='default') Notification.requestPermission();
-    initWS();
-};
-document.getElementById('notifyToggle').onchange=e=>{
-    if(e.target.checked && Notification.permission==='default') Notification.requestPermission();
-};
-document.getElementById('clearHistoryBtn').onclick=()=>{ tradeHistory=[]; saveHistory(); renderHistory(); };
+$('go').onclick=()=>{if(!read())return; save(); apply(); if(S.ntf&&Notification.permission==='default')Notification.requestPermission(); connect()};
+$('ntf').onchange=e=>{if(e.target.checked&&Notification.permission==='default')Notification.requestPermission()};
+$('clr').onclick=()=>{hist=[];saveH();renderH()};
 
-window.onload=()=>{ loadSettings(); applyForm(); renderHistory(); initWS(); };
+onload=()=>{load();apply();renderH();connect()};
 </script>
 </body>
 </html>
