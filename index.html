@@ -134,11 +134,7 @@
         background-color: #131722;
         position: relative;
     }
-    .chart-box canvas {
-        display: block;
-        width: 100%;
-        height: 100%;
-    }
+    .chart-box canvas { display: block; width: 100%; height: 100%; }
     .chart-range-label {
         position: absolute;
         right: 8px;
@@ -259,28 +255,19 @@
 
     <div class="controls-row">
         <div class="symbol-picker">
-            <label for="symbolSelect">Symbol</label>
+            <label for="symbolSelect">Symbol (only available ones shown)</label>
             <select id="symbolSelect">
-                <option value="R_10">Volatility 10 Index</option>
-                <option value="R_25">Volatility 25 Index</option>
-                <option value="R_50">Volatility 50 Index</option>
-                <option value="R_75" selected>Volatility 75 Index</option>
-                <option value="R_100">Volatility 100 Index</option>
-                <option value="1HZ10V">Volatility 10 (1s) Index</option>
-                <option value="1HZ25V">Volatility 25 (1s) Index</option>
-                <option value="1HZ50V">Volatility 50 (1s) Index</option>
-                <option value="1HZ75V">Volatility 75 (1s) Index</option>
-                <option value="1HZ100V">Volatility 100 (1s) Index</option>
+                <option value="">Loading available symbols...</option>
             </select>
         </div>
     </div>
 
-    <details class="settings" id="settingsPanel">
+    <details class="settings">
         <summary>CCI Settings &amp; Alerts</summary>
         <div class="settings-body">
             <div>
                 <label>CCI Period (locked)</label>
-                <input type="number" id="cciPeriod" value="20" class="locked" readonly>
+                <input type="number" value="20" class="locked" readonly>
             </div>
             <div>
                 <label for="cciThreshold">Overbought / Oversold Level (±Y)</label>
@@ -308,12 +295,10 @@
     <div class="price-card">
         <div class="detail-label" id="priceLabel">REAL-TIME TICK PRICE</div>
         <div id="livePrice" class="price-value">0.00</div>
-        <div id="lastUpdate" style="font-size: 0.8em; color: #78909c;">Connecting to Deriv WebSocket...</div>
+        <div id="lastUpdate" style="font-size: 0.8em; color: #78909c;">Connecting...</div>
     </div>
 
-    <div id="signalContainer" class="signal-box signal-neutral">
-        Connecting to feed...
-    </div>
+    <div id="signalContainer" class="signal-box signal-neutral">Connecting to feed...</div>
 
     <div class="details-grid">
         <div class="detail-item">
@@ -343,39 +328,44 @@
     <div id="logConsole"></div>
 
     <div class="disclaimer">
-        Strict CCI (20, Y) strategy only. Period is locked at 20. Y = overbought/oversold threshold (default ±100).<br>
-        Experimental tool for synthetic volatility indices — not financial advice.
+        Strict CCI (20, Y) only. Period locked at 20. Y = threshold (default ±100).<br>
+        Experimental tool — not financial advice.
     </div>
 </div>
 
 <script>
-    const SYMBOL_NAMES = {
-        R_10: 'Volatility 10 Index', R_25: 'Volatility 25 Index', R_50: 'Volatility 50 Index',
-        R_75: 'Volatility 75 Index', R_100: 'Volatility 100 Index',
-        '1HZ10V': 'Volatility 10 (1s)', '1HZ25V': 'Volatility 25 (1s)',
-        '1HZ50V': 'Volatility 50 (1s)', '1HZ75V': 'Volatility 75 (1s)',
-        '1HZ100V': 'Volatility 100 (1s)'
-    };
+    const PREFERRED_SYMBOLS = [
+        { code: 'R_100', name: 'Volatility 100 Index' },
+        { code: 'R_75',  name: 'Volatility 75 Index' },
+        { code: 'R_50',  name: 'Volatility 50 Index' },
+        { code: 'R_25',  name: 'Volatility 25 Index' },
+        { code: 'R_10',  name: 'Volatility 10 Index' },
+        { code: '1HZ100V', name: 'Volatility 100 (1s)' },
+        { code: '1HZ75V',  name: 'Volatility 75 (1s)' },
+        { code: '1HZ50V',  name: 'Volatility 50 (1s)' },
+        { code: '1HZ25V',  name: 'Volatility 25 (1s)' },
+        { code: '1HZ10V',  name: 'Volatility 10 (1s)' }
+    ];
 
-    const STORAGE_KEY = 'derivCCI20Settings';
-    const HISTORY_KEY = 'derivCCI20History';
-    const CCI_PERIOD = 20;          // Strictly locked
+    const STORAGE_KEY = 'derivCCI20Settings_v2';
+    const HISTORY_KEY = 'derivCCI20History_v2';
+    const CCI_PERIOD = 20;
 
     let settings = {
-        symbol: 'R_75',
-        cciThreshold: 100,          // Y
+        symbol: 'R_100',
+        cciThreshold: 100,
         sound: false,
         notify: false
     };
 
     let cciHistory = [];
-    let availableSymbolCodes = null;
+    let availableSymbols = [];
     let ws = null;
     let currentSignal = null;
     let tradeHistory = [];
     let audioCtx = null;
+    let symbolsReady = false;
 
-    // Chart
     const CHART_MAX_POINTS = 150;
     let chartPoints = [];
 
@@ -458,7 +448,6 @@
         if (chartPoints.length >= 2) drawChart();
     });
 
-    // ---------- persistence ----------
     function loadSettings() {
         try {
             const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
@@ -478,23 +467,60 @@
         localStorage.setItem(HISTORY_KEY, JSON.stringify(tradeHistory));
     }
 
+    function populateSymbolDropdown(available) {
+        const select = document.getElementById('symbolSelect');
+        select.innerHTML = '';
+
+        const valid = PREFERRED_SYMBOLS.filter(s => available.has(s.code));
+
+        if (valid.length === 0) {
+            select.innerHTML = '<option value="">No Volatility indices available</option>';
+            logError('No Volatility indices available on this connection. Try a different network/VPN or register your own app_id.');
+            return;
+        }
+
+        valid.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.code;
+            opt.textContent = s.name + ' (' + s.code + ')';
+            select.appendChild(opt);
+        });
+
+        // Prefer previous setting if still available, otherwise first available
+        if (available.has(settings.symbol)) {
+            select.value = settings.symbol;
+        } else {
+            settings.symbol = valid[0].code;
+            select.value = settings.symbol;
+        }
+
+        symbolsReady = true;
+        applySettingsToForm();
+    }
+
     function applySettingsToForm() {
-        document.getElementById('symbolSelect').value = settings.symbol;
         document.getElementById('cciThreshold').value = settings.cciThreshold;
         document.getElementById('cciThresholdDisplay').innerText = '±' + settings.cciThreshold;
         document.getElementById('soundToggle').checked = settings.sound;
         document.getElementById('notifyToggle').checked = settings.notify;
-        document.getElementById('dashTitle').innerText = (SYMBOL_NAMES[settings.symbol] || settings.symbol) + ' • CCI (20)';
+
+        const name = PREFERRED_SYMBOLS.find(s => s.code === settings.symbol)?.name || settings.symbol;
+        document.getElementById('dashTitle').innerText = name + ' • CCI (20)';
         document.getElementById('priceLabel').innerText = 'REAL-TIME TICK PRICE (' + settings.symbol + ')';
     }
 
     function readSettingsFromForm() {
         const threshold = parseFloat(document.getElementById('cciThreshold').value);
         if (!Number.isFinite(threshold) || threshold < 50) {
-            logError('Threshold Y must be a number ≥ 50.');
+            logError('Threshold Y must be ≥ 50.');
             return false;
         }
-        settings.symbol = document.getElementById('symbolSelect').value;
+        const selected = document.getElementById('symbolSelect').value;
+        if (!selected) {
+            logError('No valid symbol selected.');
+            return false;
+        }
+        settings.symbol = selected;
         settings.cciThreshold = threshold;
         settings.sound = document.getElementById('soundToggle').checked;
         settings.notify = document.getElementById('notifyToggle').checked;
@@ -506,15 +532,17 @@
         document.getElementById('logConsole').innerText = msg;
     }
 
-    // ---------- WebSocket ----------
     function initWebSocket() {
         if (ws) {
             try { ws.onclose = null; ws.close(); } catch (e) {}
         }
         cciHistory = [];
         currentSignal = null;
+        symbolsReady = false;
         resetChart();
         resetSignalDisplay();
+
+        document.getElementById('symbolSelect').innerHTML = '<option value="">Loading available symbols...</option>';
 
         ws = new WebSocket('wss://ws.derivws.com/websockets/v3?app_id=1089');
 
@@ -522,16 +550,8 @@
             document.getElementById('connectionStatus').innerText = 'Connected';
             document.getElementById('connectionStatus').className = 'status-badge connected';
             logError('');
-            ws.send(JSON.stringify({ active_symbols: 'brief' }));
-            ws.send(JSON.stringify({
-                ticks_history: settings.symbol,
-                adjust_start_time: 1,
-                count: CHART_MAX_POINTS,
-                end: 'latest',
-                start: 1,
-                style: 'ticks',
-                subscribe: 1
-            }));
+            // First get the list of actually available symbols
+            ws.send(JSON.stringify({ active_symbols: 'brief', product_type: 'basic' }));
         };
 
         ws.onmessage = function (event) {
@@ -539,11 +559,28 @@
 
             if (data.error) {
                 logError('API Error: ' + data.error.message);
+                // If symbol became invalid, try to recover
+                if (data.error.code === 'InvalidSymbol' || (data.error.message && data.error.message.includes('invalid'))) {
+                    logError('Symbol invalid. Re-fetching available symbols...');
+                    ws.send(JSON.stringify({ active_symbols: 'brief', product_type: 'basic' }));
+                }
                 return;
             }
 
+            // Handle active_symbols response
             if (data.msg_type === 'active_symbols' && Array.isArray(data.active_symbols)) {
-                availableSymbolCodes = new Set(data.active_symbols.map(s => s.symbol || s.underlying_symbol));
+                const available = new Set();
+                data.active_symbols.forEach(s => {
+                    const code = s.symbol || s.underlying_symbol;
+                    if (code) available.add(code);
+                });
+                availableSymbols = available;
+                populateSymbolDropdown(available);
+
+                // Now subscribe to the (now validated) symbol
+                if (settings.symbol && available.has(settings.symbol)) {
+                    subscribeToSymbol(settings.symbol);
+                }
                 return;
             }
 
@@ -571,10 +608,8 @@
             if (data.msg_type === 'tick' && data.tick) {
                 const currentPrice = parseFloat(data.tick.quote);
                 const epochMs = data.tick.epoch * 1000;
-                const timestamp = new Date(epochMs).toLocaleTimeString();
-
                 document.getElementById('livePrice').innerText = currentPrice.toFixed(2);
-                document.getElementById('lastUpdate').innerText = 'Last tick: ' + timestamp;
+                document.getElementById('lastUpdate').innerText = 'Last tick: ' + new Date(epochMs).toLocaleTimeString();
                 pushChartPoint(epochMs, currentPrice);
                 evaluateCCISignal(currentPrice);
             }
@@ -592,21 +627,35 @@
         };
     }
 
+    function subscribeToSymbol(symbol) {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        cciHistory = [];
+        resetChart();
+        resetSignalDisplay();
+        ws.send(JSON.stringify({
+            ticks_history: symbol,
+            adjust_start_time: 1,
+            count: CHART_MAX_POINTS,
+            end: 'latest',
+            start: 1,
+            style: 'ticks',
+            subscribe: 1
+        }));
+    }
+
     function resetSignalDisplay() {
         document.getElementById('signalContainer').className = 'signal-box signal-neutral';
         document.getElementById('signalContainer').innerText = 'Collecting tick history...';
         document.getElementById('cciValue').innerText = '--';
     }
 
-    // ---------- Strict CCI (20, Y) ----------
     function calculateCCI() {
         if (cciHistory.length < CCI_PERIOD) return null;
         const slice = cciHistory.slice(-CCI_PERIOD);
         const sma = slice.reduce((a, b) => a + b, 0) / slice.length;
         const meanDev = slice.reduce((a, b) => a + Math.abs(b - sma), 0) / slice.length;
         if (meanDev === 0) return 0;
-        const typicalPrice = slice[slice.length - 1];
-        return (typicalPrice - sma) / (0.015 * meanDev);
+        return (slice[slice.length - 1] - sma) / (0.015 * meanDev);
     }
 
     function evaluateCCISignal(currentPrice) {
@@ -614,7 +663,6 @@
         if (cciHistory.length > CCI_PERIOD + 10) cciHistory.shift();
 
         const signalContainer = document.getElementById('signalContainer');
-        const cciValueEl = document.getElementById('cciValue');
         const cci = calculateCCI();
 
         if (cci === null) {
@@ -622,33 +670,27 @@
             return;
         }
 
-        cciValueEl.innerText = cci.toFixed(1);
+        document.getElementById('cciValue').innerText = cci.toFixed(1);
         let newSignal;
 
         if (cci > settings.cciThreshold) {
             newSignal = 'buy';
             signalContainer.className = 'signal-box signal-buy';
-            signalContainer.innerText = `BUY SIGNAL — CCI ${cci.toFixed(1)} > +${settings.cciThreshold}`;
-            if (newSignal !== currentSignal) {
-                recordSignalChange('buy', currentPrice, cci);
-            }
+            signalContainer.innerText = `BUY — CCI ${cci.toFixed(1)} > +${settings.cciThreshold}`;
+            if (newSignal !== currentSignal) recordSignalChange('buy', currentPrice, cci);
         } else if (cci < -settings.cciThreshold) {
             newSignal = 'sell';
             signalContainer.className = 'signal-box signal-sell';
-            signalContainer.innerText = `SELL SIGNAL — CCI ${cci.toFixed(1)} < -${settings.cciThreshold}`;
-            if (newSignal !== currentSignal) {
-                recordSignalChange('sell', currentPrice, cci);
-            }
+            signalContainer.innerText = `SELL — CCI ${cci.toFixed(1)} < -${settings.cciThreshold}`;
+            if (newSignal !== currentSignal) recordSignalChange('sell', currentPrice, cci);
         } else {
             newSignal = 'neutral';
             signalContainer.className = 'signal-box signal-neutral';
-            signalContainer.innerText = `NEUTRAL / HOLD — CCI ${cci.toFixed(1)}`;
+            signalContainer.innerText = `NEUTRAL — CCI ${cci.toFixed(1)}`;
         }
-
         currentSignal = newSignal;
     }
 
-    // ---------- alerts & history ----------
     function playBeep(direction) {
         if (!settings.sound) return;
         try {
@@ -668,20 +710,19 @@
 
     function sendNotification(direction, price, cci) {
         if (!settings.notify || !('Notification' in window) || Notification.permission !== 'granted') return;
-        const title = (direction === 'buy' ? '🟢 BUY' : '🔴 SELL') + ' CCI (20) — ' + settings.symbol;
-        const body = `Price: ${price.toFixed(2)} | CCI: ${cci.toFixed(1)}`;
-        new Notification(title, { body });
+        new Notification((direction === 'buy' ? '🟢 BUY' : '🔴 SELL') + ' CCI(20) — ' + settings.symbol, {
+            body: `Price: ${price.toFixed(2)} | CCI: ${cci.toFixed(1)}`
+        });
     }
 
     function recordSignalChange(direction, price, cci) {
-        const entry = {
+        tradeHistory.unshift({
             time: new Date().toLocaleTimeString(),
             symbol: settings.symbol,
             direction,
             price: price.toFixed(2),
             cci: cci.toFixed(1)
-        };
-        tradeHistory.unshift(entry);
+        });
         if (tradeHistory.length > 30) tradeHistory.pop();
         saveHistory();
         renderHistory();
@@ -710,7 +751,6 @@
         });
     }
 
-    // ---------- UI ----------
     document.getElementById('applyBtn').addEventListener('click', function () {
         if (!readSettingsFromForm()) return;
         saveSettings();
@@ -718,7 +758,12 @@
         if (settings.notify && 'Notification' in window && Notification.permission === 'default') {
             Notification.requestPermission();
         }
-        initWebSocket();
+        // Re-subscribe to the (possibly new) symbol
+        if (ws && ws.readyState === WebSocket.OPEN && symbolsReady) {
+            subscribeToSymbol(settings.symbol);
+        } else {
+            initWebSocket();
+        }
     });
 
     document.getElementById('notifyToggle').addEventListener('change', function (e) {
@@ -735,7 +780,6 @@
 
     window.onload = function () {
         loadSettings();
-        applySettingsToForm();
         renderHistory();
         initWebSocket();
     };
